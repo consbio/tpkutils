@@ -13,7 +13,9 @@ conf.cdi: tileset bounding box
 import os
 import glob
 import math
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+from zipfile import ZipFile
+from io import BytesIO
 import hashlib
 
 
@@ -154,3 +156,60 @@ def read_zoom_level_tiles(folder, zoom):
         print('zoom', z)
         for f in glob.glob('{0}/_alllayers/L{1:02}/*.bundle'.format(folder, z)):
             yield from read_bundle_tiles(f)
+
+
+def read_tpk_tiles(filename, zoom=None):
+    """
+    Read all non-empty tiles from tile package, optionally limited to zoom
+    levels provided.
+
+    Parameters
+    ----------
+    filename: string
+        name of ArcGIS tile package
+    zoom: int or list-like  (default: None)
+        zoom level or list-like of zoom levels
+
+    Returns
+    -------
+    generator(Tile)
+        Only returns non-empty tiles
+    """
+
+    if isinstance(zoom, int):
+        zoom = [zoom]
+
+    with ZipFile(filename) as tpk:
+
+        bundles = []
+        for name in tpk.namelist():
+            if 'Layers/_alllayers/L' in name and '.bundle' in name:
+                z = int(name.split('/')[-2].lstrip('L'))
+                if zoom is None or z in zoom:
+                    bundles.append(name)
+
+        for fname in bundles:
+            # parse filename to determine row / col offset for bundle
+            # offsets are in hex
+            file_root = os.path.splitext(os.path.basename(fname))[0]
+            r_off, c_off = [int(x, 16) for x in file_root.lstrip('R').split('C')]
+            # zoom level is from name of containing folder
+            z = int(os.path.split(os.path.dirname(fname))[1].lstrip('L'))
+
+            # discard 16 byte header
+            index_bytes=tpk.read(fname.replace('.bundle', '.bundlx'))[16:]
+
+            bundle_bytes = BytesIO(tpk.read(fname))
+            index = 0
+            max_index = BUNDLE_DIM ** 2
+            while index < max_index:
+                data = read_tile(
+                    bundle_bytes,
+                    buffer_to_offset(index_bytes[index * INDEX_SIZE:(index + 1) * INDEX_SIZE])
+                )
+                if data:
+                    row = math.floor(float(index) / BUNDLE_DIM)
+                    col = index - row * BUNDLE_DIM
+                    yield Tile(c_off + col, r_off + row, z, data)
+
+                index += 1
