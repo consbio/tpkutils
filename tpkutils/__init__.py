@@ -16,7 +16,7 @@ import math
 from collections import namedtuple, defaultdict
 from zipfile import ZipFile
 from io import BytesIO
-import hashlib
+from tpkutils.mbtiles import Mbtiles
 
 
 BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles
@@ -213,3 +213,12 @@ def read_tpk_tiles(filename, zoom=None):
                     yield Tile(c_off + col, r_off + row, z, data)
 
                 index += 1
+
+
+def tpk_to_mbtiles(tpk_filename, mbtiles_filename, zoom=None, overwrite=False):
+    mbtiles = Mbtiles(mbtiles_filename, overwrite)
+
+    for tile in read_tpk_tiles(tpk_filename, zoom):
+        mbtiles.insert_tile(*tile)
+
+    mbtiles.close()
