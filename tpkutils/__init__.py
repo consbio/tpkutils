@@ -23,8 +23,8 @@ from tpkutils.util import geo_bounds
 
 
 logger = logging.getLogger('tpkutils')
-logger.setLevel(logging.DEBUG)
-logger.addHandler(logging.StreamHandler())
+# logger.setLevel(logging.DEBUG)
+# logger.addHandler(logging.StreamHandler())
 
 
 BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles

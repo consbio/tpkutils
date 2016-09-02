@@ -1,7 +1,5 @@
 import os
-from distutils.core import setup
-
-
+from setuptools import setup, find_packages
 
 
 long_description = 'Utility to read and export ArcGIS Tile Packages'
