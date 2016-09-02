@@ -12,6 +12,7 @@ conf.cdi: tileset bounding box
 
 import os
 import math
+import time
 from xml.etree import ElementTree
 from collections import namedtuple
 from zipfile import ZipFile
@@ -21,7 +22,9 @@ from tpkutils.mbtiles import Mbtiles
 from tpkutils.util import geo_bounds
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('tpkutils')
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
 
 
 BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles
@@ -81,7 +84,10 @@ class TPK(object):
     def __init__(self, filename):
         self._fp = ZipFile(filename)
         self.version = '1.0.0'
+        self.attribution = ''
 
+
+        logger.debug('Reading package metadata')
         tile_root = 'v101/Layers'  # TODO: automatically determine
 
         # Bounding box and projection info is in .../Layers/conf.cdi
@@ -102,10 +108,15 @@ class TPK(object):
         self.format = xml.find('TileImageInfo/CacheTileFormat').text
 
         # Descriptive info in esriinfo/iteminfo.xml
+        # Some fields are required by ArcGIS to create tile package
         xml = ElementTree.fromstring(self._fp.read('esriinfo/iteminfo.xml'))
-        self.name = xml.find('title').text
-        self.description = xml.find('description').text
-        self.attribution = xml.find('licenseinfo').text or ''  # TODO: confirm GUI entry field for this
+        self.name = xml.find('title').text  # required field, provided automatically
+        self.summary = xml.find('summary').text  # required field
+        self.tags = xml.find('tags').text or ''  # required field
+        self.description = xml.find('description').text or ''  # optional
+        self.credits = xml.find('accessinformation').text or ''  # optional, Credits in ArcGIS
+        self.use_constraints = xml.find('licenseinfo').text or ''  # optional, Use Constraints in ArcGIS
+        # TODO: add other fields
 
     def read_tiles(self, zoom=None):
         """
@@ -134,7 +145,8 @@ class TPK(object):
                     bundles.append(name)
 
         for fname in bundles:
-            print('Reading bundle: {0}'.format(fname))
+            logger.debug('Reading bundle: {0}'.format(fname))
+            start = time.time()
             # parse filename to determine row / col offset for bundle
             # offsets are in hex
             root = os.path.splitext(os.path.basename(fname))[0]
@@ -167,6 +179,7 @@ class TPK(object):
                     yield Tile(z, x, y, data)
 
                 index += 1
+            logger.debug('Time to read bundle: {0:2f}'.format(time.time() - start))
 
     def to_mbtiles(self, filename, zoom=None, overwrite=False):
         """
@@ -209,14 +222,16 @@ class TPK(object):
 
         mbtiles.set_metadata({
             'name': self.name,
-            'description': self.description,
+            'description': self.summary,  # not description, which is optional
             'version': self.version,
             'attribution': self.attribution,
+            'tags': self.tags,
+            'credits': self.credits,
+            'use_constraints': self.use_constraints,
 
             'type': 'overlay',
-            'format': self.format.lower(),
+            'format': self.format.lower().replace('jpeg', 'jpg')[:3],
             'bounds': ','.join('{0:4f}'.format(v) for v in self.bounds),
-            # 'bounds': '-180,-80,180,80',
             'center': center,
             'minzoom': str(zoom[0]),
             'maxzoom': str(zoom[-1]),
