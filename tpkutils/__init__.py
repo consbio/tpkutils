@@ -28,6 +28,7 @@ logger.addHandler(logging.StreamHandler())
 
 
 BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles
+# TODO: bundle size is stored in one of the configuration files
 INDEX_SIZE = 5  # tile index is stored in 5 byte values
 
 
@@ -82,6 +83,14 @@ def read_tile(bundle, offset):
 # TODO: context manager
 class TPK(object):
     def __init__(self, filename):
+        """
+        Opens a tile package file for reading tiles and metadata.
+
+        Parameters
+        ----------
+        filename: string
+            name of tile package
+        """
         self._fp = ZipFile(filename)
         self.version = '1.0.0'
         self.attribution = ''
@@ -116,9 +125,8 @@ class TPK(object):
         self.description = xml.find('description').text or ''  # optional
         self.credits = xml.find('accessinformation').text or ''  # optional, Credits in ArcGIS
         self.use_constraints = xml.find('licenseinfo').text or ''  # optional, Use Constraints in ArcGIS
-        # TODO: add other fields
 
-    def read_tiles(self, zoom=None):
+    def read_tiles(self, zoom=None, flip_y=False):
         """
         Read all non-empty tiles from tile package, optionally limited to zoom
         levels provided.
@@ -127,6 +135,9 @@ class TPK(object):
         ----------
         zoom: int or list-like  (default: None)
             zoom level or list-like of zoom levels
+        flip_y: bool  (default False)
+            if True, will return tiles in xyz tile scheme.  Otherwise will use
+            ArcGIS scheme.
 
         Returns
         -------
@@ -173,8 +184,8 @@ class TPK(object):
                     x = c_off + row
                     y = r_off + index - (row * BUNDLE_DIM)
 
-                    # Flip Y
-                    y = (1 << z) - 1 - y
+                    if flip_y:
+                        y = (1 << z) - 1 - y
 
                     yield Tile(z, x, y, data)
 
@@ -195,11 +206,11 @@ class TPK(object):
         overwrite: bool, default: False
             overwrite existing mbtiles file.  If False and file exists, an
             exception will be raised.
-
-        Returns
-        -------
-        None
         """
+
+        if self.format.lower() == 'mixed':
+            raise ValueError('Mixed format tiles are not supported for export to mbtiles')
+
         mbtiles = Mbtiles(filename, overwrite)
         if zoom is None:
             zoom = self.zoom_levels
@@ -209,10 +220,9 @@ class TPK(object):
         zoom = list(zoom)
         zoom.sort()
 
-        for tile in self.read_tiles(zoom):
+        for tile in self.read_tiles(zoom, flip_y=True):
             mbtiles.add_tile(tile.z, tile.x, tile.y, tile.data)
 
-        # move to metadata
         bounds = self.bounds
         center = '{0:4f},{1:4f},{2}'.format(
             bounds[0] + (bounds[2] - bounds[0]) / 2.0,

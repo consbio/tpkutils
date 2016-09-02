@@ -1,6 +1,6 @@
 # ArcGIS Tile Package Utilities
 
-This library provides a interface into reading tiles and metadata [ArcGIS Tile Packages](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) which contain tile caches using the [ArcGIS Compact Tile Cache](https://server.arcgis.com/en/server/10.3/publish-services/windows/inside-the-compact-cache-storage-format.htm)
+A Python 3 library for reading tiles and exporting tools from [ArcGIS Tile Packages](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) which contain tile caches using the [ArcGIS Compact Tile Cache](https://server.arcgis.com/en/server/10.3/publish-services/windows/inside-the-compact-cache-storage-format.htm)
 
 ## Goals
 * easy access to tiles in a tile package
@@ -35,6 +35,12 @@ You can also just read tiles for a  given zoom level or levels:
 tpk.read_tiles(zoom=[4])
 ```
 
+By default, tiles are returned according to the ArcGIS tile scheme.  To output tiles in xyz scheme, the y-value needs to be flipped:
+```
+tpk.read_tiles(flip_y=True)
+```
+
+
 *Note:* no direct interface to read a single tile or tiles specified by x or y is currently provided.
 
 
@@ -51,10 +57,16 @@ Or just export a subset of zoom levels:
 tpk.to_mbtiles('fewer_tiles.mbtiles', zoom=[0,1,2,3,4])
 ```
 
+*Note:* tiles are output to mbtiles format in xyz tile scheme.
+
+*Also note:* [mixed format](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) tiles are not supported for export to mbtiles.
 
 
 
 ## Note
+All tile packages are assumed to follow the Web Mercator Tiling Scheme
+(Google/Bing/etc), and be in the Web Mercator coordinate reference system.
+
 Developed and tested using image tile packages created using ArcGIS 10.3;
 however, these appear to use the 10.1 compact bundle format.
 
@@ -67,9 +79,7 @@ Tile packages created using other versions may not work correctly
 
 Versions from ArcGIS older than 10.1 are unlikely to be supported.
 
-The interface for reading tiles and exporting to mbtiles uses the xyz
-scheme.  This means that the tile y value is flipped from the
-underlying ArcGIS scheme.
+No support for Python 2 is planned.
 
 
 ## Credits:
