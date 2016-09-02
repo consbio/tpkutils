@@ -1,10 +1,3 @@
-# see: https://github.com/mapbox/mbutil/blob/master/mbutil/util.py
-# see: https://github.com/mapbox/rio-mbtiles/blob/master/mbtiles/scripts/cli.py
-# optimization see: https://github.com/lukasmartinelli/mbtoolbox
-
-# Note: y might need to be flipped: https://github.com/mapbox/mbutil/blob/master/mbutil/util.py#L174
-
-
 import os
 import sqlite3
 import hashlib
@@ -47,7 +40,6 @@ class Mbtiles(object):
         self.db.commit()
 
     def set_metadata(self, metadata):
-        # data type casting?  All values are strings
         for k, v in metadata.items():
             self.cursor.execute(
                 'INSERT INTO metadata (name, value) values (?, ?)',
