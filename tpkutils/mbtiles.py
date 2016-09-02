@@ -29,14 +29,8 @@ class Mbtiles(object):
         self.cursor.executescript(schema)
         self.db.commit()
 
-    def close(self):
-        self.cursor.close()
-        self.db.close()
-
-    def insert_tile(self, x, y, z, data):
-        # use insert or ignore into
+    def add_tile(self, z, x, y, data):
         id = hashlib.sha1(data).hexdigest()
-        print('add tile: {0}/{1}/{2} id: {3}'.format(z,x,y, id))
 
         self.cursor.execute(
             'INSERT OR IGNORE INTO images (tile_id, tile_data) values (?, ?)',
@@ -51,3 +45,16 @@ class Mbtiles(object):
         )
 
         self.db.commit()
+
+    def set_metadata(self, metadata):
+        # data type casting?  All values are strings
+        for k, v in metadata.items():
+            self.cursor.execute(
+                'INSERT INTO metadata (name, value) values (?, ?)',
+                (k, v)
+            )
+
+    def close(self):
+        self.cursor.execute('VACUUM')
+        self.cursor.close()
+        self.db.close()

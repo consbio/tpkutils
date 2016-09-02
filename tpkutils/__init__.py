@@ -11,19 +11,24 @@ conf.cdi: tileset bounding box
 
 
 import os
-import glob
 import math
-from collections import namedtuple, defaultdict
+from xml.etree import ElementTree
+from collections import namedtuple
 from zipfile import ZipFile
 from io import BytesIO
+import logging
 from tpkutils.mbtiles import Mbtiles
+from tpkutils.util import geo_bounds
+
+
+logger = logging.getLogger(__name__)
 
 
 BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles
 INDEX_SIZE = 5  # tile index is stored in 5 byte values
 
 
-Tile = namedtuple('Tile', ['x', 'y', 'z', 'data'])
+Tile = namedtuple('Tile', ['z', 'x', 'y', 'data'])
 
 
 def buffer_to_offset(buffer):
@@ -68,157 +73,158 @@ def read_tile(bundle, offset):
 
 
 
-def read_bundle_tiles(bundle_filename):
-    """
-    Read all non-empty tiles from bundle.
-
-    Parameters
-    ----------
-    bundle_filename: string
-        name of ArcGIS bundle filename
-
-    Returns
-    -------
-    generator(Tile)
-        Only returns non-empty tiles
-    """
-
-    # parse filename to determine row / col offset for bundle
-    # offsets are in hex
-    file_root = os.path.splitext(os.path.basename(bundle_filename))[0]
-    r_offset, c_offset = [int(x, 16) for x in file_root.lstrip('R').split('C')]
-    # zoom level is from name of containing folder
-    z = int(os.path.split(os.path.dirname(bundle_filename))[1].lstrip('L'))
-
-    with open(bundle_filename.replace('.bundle', '.bundlx'), 'rb') as bundlx:
-        bundlx.seek(16)  # 16 byte header
-        index_bytes = bundlx.read()
-
-    with open(bundle_filename, 'rb') as bundle:
-        index = 0
-        max_index = BUNDLE_DIM**2
-        while index < max_index:
-            data = read_tile(
-                bundle,
-                buffer_to_offset(index_bytes[index * INDEX_SIZE:(index + 1) * INDEX_SIZE])
-            )
-            if data:
-                row = math.floor(float(index) / BUNDLE_DIM)
-                col = index - row * BUNDLE_DIM
-                yield Tile(c_offset + col, r_offset + row, z, data)
-
-            index += 1
 
 
-def read_all_tiles(folder):
-    """
-    Read all non-empty tiles from all zoom levels in folder using a generator
-    expression.
 
-    Parameters
-    ----------
-    folder: string
-        folder containing _alllayers directory
+# TODO: context manager
+class TPK(object):
+    def __init__(self, filename):
+        self._fp = ZipFile(filename)
+        self.version = '1.0.0'
 
-    Returns
-    -------
-    generator(Tile)
-        Only returns non-empty tiles
-    """
+        tile_root = 'v101/Layers'  # TODO: automatically determine
 
-    for f in glob.glob('{0}/_alllayers/L*/*.bundle'.format(folder)):
-        yield from read_bundle_tiles(f)
+        # Bounding box and projection info is in .../Layers/conf.cdi
+        conf_filename = '{0}/{1}'.format(tile_root, 'conf.cdi')
+        xml = ElementTree.fromstring(self._fp.read(conf_filename))
+        wm_bounds = [
+            float(xml.find(e).text) for e in ('XMin', 'YMin', 'XMax', 'YMax')
+        ]
+        self.bounds = geo_bounds(*wm_bounds)
 
+        # File format, zoom levels, etc in .../Layers/conf.xml
+        conf_filename = '{0}/{1}'.format(tile_root, 'conf.xml')
+        xml = ElementTree.fromstring(self._fp.read(conf_filename))
+        self.zoom_levels = [
+            int(e.text) for e in
+            xml.findall('TileCacheInfo/LODInfos/LODInfo/LevelID')
+        ]
+        self.format = xml.find('TileImageInfo/CacheTileFormat').text
 
-def read_zoom_level_tiles(folder, zoom):
-    """
-    Read all non-empty tiles from the zoom level using a generator expression.
+        # Descriptive info in esriinfo/iteminfo.xml
+        xml = ElementTree.fromstring(self._fp.read('esriinfo/iteminfo.xml'))
+        self.name = xml.find('title').text
+        self.description = xml.find('description').text
+        self.attribution = xml.find('licenseinfo').text or ''  # TODO: confirm GUI entry field for this
 
-    Parameters
-    ----------
-    folder: string
-        folder containing _alllayers directory
+    def read_tiles(self, zoom=None):
+        """
+        Read all non-empty tiles from tile package, optionally limited to zoom
+        levels provided.
 
-    zoom: int or list-like
-        zoom level or list-like of zoom levels
+        Parameters
+        ----------
+        zoom: int or list-like  (default: None)
+            zoom level or list-like of zoom levels
 
-    Returns
-    -------
-    generator(Tile)
-        Only returns non-empty tiles
-    -------
+        Returns
+        -------
+        generator(Tile)
+            Only returns non-empty tiles
+        """
 
-    """
-    if isinstance(zoom, int):
-        zoom = [zoom]
-
-    for z in zoom:
-        print('zoom', z)
-        for f in glob.glob('{0}/_alllayers/L{1:02}/*.bundle'.format(folder, z)):
-            yield from read_bundle_tiles(f)
-
-
-def read_tpk_tiles(filename, zoom=None):
-    """
-    Read all non-empty tiles from tile package, optionally limited to zoom
-    levels provided.
-
-    Parameters
-    ----------
-    filename: string
-        name of ArcGIS tile package
-    zoom: int or list-like  (default: None)
-        zoom level or list-like of zoom levels
-
-    Returns
-    -------
-    generator(Tile)
-        Only returns non-empty tiles
-    """
-
-    if isinstance(zoom, int):
-        zoom = [zoom]
-
-    with ZipFile(filename) as tpk:
+        if isinstance(zoom, int):
+            zoom = [zoom]
 
         bundles = []
-        for name in tpk.namelist():
+        for name in self._fp.namelist():
             if 'Layers/_alllayers/L' in name and '.bundle' in name:
                 z = int(name.split('/')[-2].lstrip('L'))
                 if zoom is None or z in zoom:
                     bundles.append(name)
 
         for fname in bundles:
+            print('Reading bundle: {0}'.format(fname))
             # parse filename to determine row / col offset for bundle
             # offsets are in hex
-            file_root = os.path.splitext(os.path.basename(fname))[0]
-            r_off, c_off = [int(x, 16) for x in file_root.lstrip('R').split('C')]
+            root = os.path.splitext(os.path.basename(fname))[0]
+            r_off, c_off = [int(x, 16) for x in root.lstrip('R').split('C')]
             # zoom level is from name of containing folder
             z = int(os.path.split(os.path.dirname(fname))[1].lstrip('L'))
 
             # discard 16 byte header
-            index_bytes=tpk.read(fname.replace('.bundle', '.bundlx'))[16:]
+            index_bytes = self._fp.read(fname.replace('.bundle', '.bundlx'))[16:]
 
-            bundle_bytes = BytesIO(tpk.read(fname))
+            bundle_bytes = BytesIO(self._fp.read(fname))
             index = 0
             max_index = BUNDLE_DIM ** 2
             while index < max_index:
                 data = read_tile(
                     bundle_bytes,
-                    buffer_to_offset(index_bytes[index * INDEX_SIZE:(index + 1) * INDEX_SIZE])
+                    buffer_to_offset(
+                        index_bytes[index * INDEX_SIZE:(index + 1) * INDEX_SIZE]
+                    )
                 )
                 if data:
                     row = math.floor(float(index) / BUNDLE_DIM)
-                    col = index - row * BUNDLE_DIM
-                    yield Tile(c_off + col, r_off + row, z, data)
+                    # Note: x and y seem backwards but were verified through trial and error!
+                    x = c_off + row
+                    y = r_off + index - (row * BUNDLE_DIM)
+
+                    # Flip Y
+                    y = (1 << z) - 1 - y
+
+                    yield Tile(z, x, y, data)
 
                 index += 1
 
+    def to_mbtiles(self, filename, zoom=None, overwrite=False):
+        """
+        Export tile package to mbtiles v1.1 file, optionally limited to zoom
+        levels.
 
-def tpk_to_mbtiles(tpk_filename, mbtiles_filename, zoom=None, overwrite=False):
-    mbtiles = Mbtiles(mbtiles_filename, overwrite)
+        Parameters
+        ----------
+        filename: string
+            name of mbtiles file
+        zoom: int or list-like of ints, default: None (all tiles exported)
+            zoom levels to export to mbtiles
+        overwrite: bool, default: False
+            overwrite existing mbtiles file.  If False and file exists, an
+            exception will be raised.
 
-    for tile in read_tpk_tiles(tpk_filename, zoom):
-        mbtiles.insert_tile(*tile)
+        Returns
+        -------
+        None
+        """
+        mbtiles = Mbtiles(filename, overwrite)
+        if zoom is None:
+            zoom = self.zoom_levels
+        elif isinstance(zoom, int):
+            zoom = [zoom]
 
-    mbtiles.close()
+        zoom = list(zoom)
+        zoom.sort()
+
+        for tile in self.read_tiles(zoom):
+            mbtiles.add_tile(tile.z, tile.x, tile.y, tile.data)
+
+        # move to metadata
+        bounds = self.bounds
+        center = '{0:4f},{1:4f},{2}'.format(
+            bounds[0] + (bounds[2] - bounds[0]) / 2.0,
+            bounds[1] + (bounds[3] - bounds[1]) / 2.0,
+            max(zoom[0], int((zoom[-1] - zoom[0]) / 4.0))  # Tune this
+        )
+
+        mbtiles.set_metadata({
+            'name': self.name,
+            'description': self.description,
+            'version': self.version,
+            'attribution': self.attribution,
+
+            'type': 'overlay',
+            'format': self.format.lower(),
+            'bounds': ','.join('{0:4f}'.format(v) for v in self.bounds),
+            # 'bounds': '-180,-80,180,80',
+            'center': center,
+            'minzoom': str(zoom[0]),
+            'maxzoom': str(zoom[-1]),
+
+            'legend': ''  # TODO: extract from svc symbols
+        })
+
+        mbtiles.close()
+
+    def close(self):
+        self._fp.close()
