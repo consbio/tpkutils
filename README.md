@@ -1,10 +1,14 @@
 # ArcGIS Tile Package Utilities
 
-A Python 3 library for reading tiles and exporting tools from [ArcGIS Tile Packages](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) which contain tile caches using the [ArcGIS Compact Tile Cache](https://server.arcgis.com/en/server/10.3/publish-services/windows/inside-the-compact-cache-storage-format.htm)
+A Python 3 library for reading tiles and exporting tools from 
+[ArcGIS Tile Packages](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) 
+which contain tile caches using the 
+[ArcGIS Compact Tile Cache](https://server.arcgis.com/en/server/10.3/publish-services/windows/inside-the-compact-cache-storage-format.htm)
 
 ## Goals
 * easy access to tiles in a tile package
-* export to mbtiles, for hosting on any of a variety of mbtiles servers, such as [mbtileserver](https://github.com/consbio/mbtileserver)
+* export to mbtiles, for hosting on any of a variety of mbtiles servers, 
+such as [mbtileserver](https://github.com/consbio/mbtileserver)
 
 
 
@@ -22,7 +26,8 @@ tpk = TPK('my_tiles.tpk')
 
 #### Tile access
 
-You can iterate over individual tiles - for instance, to save to disk.  Tiles are returned as a 
+You can iterate over individual tiles - for instance, to save to disk.  
+Tiles are returned as a 
 `namedtuple`: `Tile(z, x, y, data)`:
 ```
 for tile in tpk.read_tiles():
@@ -35,13 +40,15 @@ You can also just read tiles for a  given zoom level or levels:
 tpk.read_tiles(zoom=[4])
 ```
 
-By default, tiles are returned according to the ArcGIS tile scheme.  To output tiles in xyz scheme, the y-value needs to be flipped:
+By default, tiles are returned according to the ArcGIS tile scheme.  
+To output tiles in xyz scheme, the y-value needs to be flipped:
 ```
 tpk.read_tiles(flip_y=True)
 ```
 
 
-*Note:* no direct interface to read a single tile or tiles specified by x or y is currently provided.
+*Note:* no direct interface to read a single tile or tiles specified by 
+x or y is currently provided.
 
 
 
@@ -59,7 +66,8 @@ tpk.to_mbtiles('fewer_tiles.mbtiles', zoom=[0,1,2,3,4])
 
 *Note:* tiles are output to mbtiles format in xyz tile scheme.
 
-*Also note:* [mixed format](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) tiles are not supported for export to mbtiles.
+*Also note:* [mixed format](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) 
+tiles are not supported for export to mbtiles.
 
 
 

@@ -28,7 +28,7 @@ setup(
     long_description=long_description,
     install_requires=['click'],
     extras_require={
-        'test': ['pytest'],
+        'test': ['pytest', 'pytest-cov'],
     },
     entry_points={
         'console_scripts': 'tpk=tpkutils.cli:cli'
