@@ -92,9 +92,10 @@ class TPK(object):
             name of tile package
         """
         self._fp = ZipFile(filename)
+
+        # Fields specifically meant to be updated by user
         self.version = '1.0.0'
         self.attribution = ''
-
 
         logger.debug('Reading package metadata')
         tile_root = 'v101/Layers'  # TODO: automatically determine

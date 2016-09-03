@@ -52,8 +52,9 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
 
     tpk = TPK(tpk_filename)
     tpk.to_mbtiles(mbtiles_filename, zoom, overwrite)
+    tpk.close()
 
-    print('Read tiles in {0:.2f} seconds'.format(time.time() - start))
+    print('Read tiles in {0:2f} seconds'.format(time.time() - start))
 
 if __name__ == '__main__':
     cli()
