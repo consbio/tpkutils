@@ -1,8 +1,10 @@
 language: python
-sudo: false
 python:
   - "3.5"
 install:
   - "pip install -e ."
+  - "pip install -e .[test]"
   - "pip install coveralls>=1.1"
 script: "py.test --cov tpkutils --cov-report term-missing"
+after_success:
+  - coveralls || echo "!! intermittent coveralls failure"
