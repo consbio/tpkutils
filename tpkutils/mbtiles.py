@@ -8,7 +8,7 @@ class Mbtiles(object):
     """
     Interface for creating and populating mbtiles files.
     """
-    def __init__(self, filename, overwrite=False):
+    def __init__(self, filename, mode='r'):
         """
         Creates an open mbtiles file.  Must be closed after all data are added.
 
@@ -16,19 +16,19 @@ class Mbtiles(object):
         ----------
         filename: string
             name of output mbtiles file
-        overwrite: bool
-            if True, existing mbtiles file will be deleted first
+        mode: string, one of ('r', 'w')
+            if 'w', existing mbtiles file will be deleted first
         """
 
-        if os.path.exists(filename):
-            if overwrite:
+        if mode not in ('r', 'w'):
+            raise ValueError("Mode must be 'r' or 'w'")
+
+        if mode == 'w' and os.path.exists(filename):
                 os.remove(filename)
-            else:
-                raise IOError(
-                    'Destination mbtiles file already exists, '
-                    'will not overwrite: {0}'.format(filename)
-                )
-        self.db = sqlite3.connect(filename)  # isolation mode? isolation_level=None  (autocommit)  #TODO: optimize handling of transactions when inserting many times
+
+        connect_mode = 'ro' if mode == 'r' else 'rwc'
+        self.db = sqlite3.connect(
+            'file:{0}?mode={1}'.format(filename, connect_mode), uri=True)  # isolation mode? isolation_level=None  (autocommit)  #TODO: optimize handling of transactions when inserting many times
         self.cursor = self.db.cursor()
 
         # initialize tables

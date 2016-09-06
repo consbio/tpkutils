@@ -196,7 +196,8 @@ class TPK(object):
     def to_mbtiles(self, filename, zoom=None, overwrite=False):
         """
         Export tile package to mbtiles v1.1 file, optionally limited to zoom
-        levels.
+        levels.  If filename exists, it will be overwritten.  If filename
+        does not include the suffix '.mbtiles' it will be added.
 
         Parameters
         ----------
@@ -204,15 +205,15 @@ class TPK(object):
             name of mbtiles file
         zoom: int or list-like of ints, default: None (all tiles exported)
             zoom levels to export to mbtiles
-        overwrite: bool, default: False
-            overwrite existing mbtiles file.  If False and file exists, an
-            exception will be raised.
         """
 
         if self.format.lower() == 'mixed':
             raise ValueError('Mixed format tiles are not supported for export to mbtiles')
 
-        mbtiles = Mbtiles(filename, overwrite)
+        if not filename.endswith('.mbtiles'):
+            filename = '{0}.mbtiles'.format(filename)
+
+        mbtiles = Mbtiles(filename, 'w')
         if zoom is None:
             zoom = self.zoom_levels
         elif isinstance(zoom, int):

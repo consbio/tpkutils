@@ -35,7 +35,7 @@ def export():
     '-z', '--zoom', type=click.STRING, default=None,
     help='Limit zoom levels to export: "0,1,2"')
 @click.option(
-    '-o', '--overwrite', is_flag=True, default=False,
+    '--overwrite', is_flag=True, default=False,
     help='Overwrite existing mbtiles file', show_default=True)
 
 @click.option('-v', '--verbose', count=True, help='Verbose output')
@@ -46,7 +46,8 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
 
     if os.path.exists(mbtiles_filename) and not overwrite:
         raise click.BadArgumentUsage(
-            'Output exists and overwrite is false.  Use -o option to overwrite')
+            'Output exists and overwrite is false. '
+            'Use --overwrite option to overwrite')
 
     start = time.time()
 
