@@ -1,0 +1,2 @@
+include tpkutils/mbtiles_schema.sql
+exclude MANIFEST.in

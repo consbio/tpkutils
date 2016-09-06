@@ -1,5 +1,5 @@
 import os
-from setuptools import setup, find_packages
+from setuptools import setup
 
 
 long_description = 'Utility to read and export ArcGIS Tile Packages'
@@ -19,7 +19,7 @@ if os.path.exists('README.md'):
 setup(
     name='tpkutils',
     version='0.1.0',
-    packages=['tests', 'tpkutils'],
+    packages=['tpkutils'],
     url='https://github.com/consbio/tkutils',
     license='ISC',
     author='Brendan Ward',
@@ -27,6 +27,7 @@ setup(
     description='ArcGIS Tile Package Utilities',
     long_description=long_description,
     install_requires=['click'],
+    include_package_data=True,
     extras_require={
         'test': ['pytest', 'pytest-cov'],
     },
