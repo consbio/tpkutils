@@ -1,6 +1,10 @@
 import os
 import sqlite3
 import hashlib
+import logging
+
+
+logger = logging.getLogger('tpkutils')
 
 
 # TODO: enable context manager
@@ -28,7 +32,7 @@ class Mbtiles(object):
 
         connect_mode = 'ro' if mode == 'r' else 'rwc'
         self.db = sqlite3.connect(
-            'file:{0}?mode={1}'.format(filename, connect_mode), uri=True)  # isolation mode? isolation_level=None  (autocommit)  #TODO: optimize handling of transactions when inserting many times
+            'file:{0}?mode={1}'.format(filename, connect_mode), uri=True, isolation_level=None)
         self.cursor = self.db.cursor()
 
         self.cursor.execute('PRAGMA synchronous=OFF')
@@ -42,7 +46,8 @@ class Mbtiles(object):
 
     def add_tile(self, z, x, y, data):
         """
-        Add a tile to the mbtiles file.
+        Add a tile to the mbtiles file.  Note: this is not as performant as
+        add_tiles function for inserting several tiles at once.
 
         Parameters
         ----------
@@ -72,6 +77,37 @@ class Mbtiles(object):
 
         self.db.commit()
 
+    def add_tiles(self, tiles):
+        """
+        Add several tiles to mbtiles file, using a single transaction.
+        Parameters
+        ----------
+        tiles: iterable of Tile(z, x, y, data) tuples
+        """
+
+        self.cursor.execute('BEGIN')
+
+        try:
+            for tile in tiles:
+                id = hashlib.sha1(tile.data).hexdigest()
+                self.cursor.execute(
+                    'INSERT OR IGNORE INTO images (tile_id, tile_data) values (?, ?)',
+                    (id, sqlite3.Binary(tile.data))
+                )
+
+                self.cursor.execute(
+                    'INSERT INTO map '
+                    '(zoom_level, tile_column, tile_row, tile_id) '
+                    'values(?, ?, ?, ?)',
+                    (tile.z, tile.x, tile.y, id)
+                )
+
+            self.cursor.execute('COMMIT')
+
+        except self.db.Error:
+            logger.exception('Error inserting tiles, rolling back database')
+            self.cursor.execute('ROLLBACK')
+
     def set_metadata(self, metadata):
         """
         Set the metadata table using a dictionary of string key-value pairs.
@@ -82,11 +118,11 @@ class Mbtiles(object):
             dictionary containing string key-value pairs
         """
 
-        for k, v in metadata.items():
-            self.cursor.execute(
-                'INSERT INTO metadata (name, value) values (?, ?)',
-                (k, v)
-            )
+        self.cursor.executemany(
+            'INSERT INTO metadata (name, value) values (?, ?)',
+            metadata.items())
+
+        self.db.commit()
 
     def close(self):
         """

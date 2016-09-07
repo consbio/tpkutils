@@ -222,8 +222,7 @@ class TPK(object):
         zoom = list(zoom)
         zoom.sort()
 
-        for tile in self.read_tiles(zoom, flip_y=True):
-            mbtiles.add_tile(tile.z, tile.x, tile.y, tile.data)
+        mbtiles.add_tiles(self.read_tiles(zoom, flip_y=True))
 
         bounds = self.bounds
         center = '{0:4f},{1:4f},{2}'.format(

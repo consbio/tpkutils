@@ -51,6 +51,9 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
 
     start = time.time()
 
+    if zoom is not None:
+        zoom = [int(v) for v in zoom.split(',')]
+
     tpk = TPK(tpk_filename)
     tpk.to_mbtiles(mbtiles_filename, zoom, overwrite)
     tpk.close()
