@@ -31,6 +31,10 @@ class Mbtiles(object):
             'file:{0}?mode={1}'.format(filename, connect_mode), uri=True)  # isolation mode? isolation_level=None  (autocommit)  #TODO: optimize handling of transactions when inserting many times
         self.cursor = self.db.cursor()
 
+        self.cursor.execute('PRAGMA synchronous=OFF')
+        self.cursor.execute('PRAGMA journal_mode=OFF')  # TODO: DELETE or WAL?
+        self.cursor.execute('PRAGMA locking_mode=EXCLUSIVE')
+
         # initialize tables
         schema = open(__file__.replace('.py', '_schema.sql')).read()
         self.cursor.executescript(schema)
@@ -89,6 +93,7 @@ class Mbtiles(object):
         Close the mbtiles file.  Vacuums database prior to closing.
         """
 
+        self.cursor.execute('ANALYZE')
         self.cursor.execute('VACUUM')
         self.cursor.close()
         self.db.close()
