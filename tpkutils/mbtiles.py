@@ -8,7 +8,7 @@ logger = logging.getLogger('tpkutils')
 
 
 # TODO: enable context manager
-class Mbtiles(object):
+class MBtiles(object):
     """
     Interface for creating and populating mbtiles files.
     """
@@ -27,8 +27,11 @@ class Mbtiles(object):
         if mode not in ('r', 'w'):
             raise ValueError("Mode must be 'r' or 'w'")
 
-        if mode == 'w' and os.path.exists(filename):
+        if os.path.exists(filename):
+            if mode == 'w':
                 os.remove(filename)
+        elif mode == 'r':
+            raise IOError('mbtiles not found: {0}'.format(filename))
 
         connect_mode = 'ro' if mode == 'r' else 'rwc'
         self.db = sqlite3.connect(
@@ -104,7 +107,7 @@ class Mbtiles(object):
 
             self.cursor.execute('COMMIT')
 
-        except self.db.Error:
+        except self.db.Error:  # pragma: no cover
             logger.exception('Error inserting tiles, rolling back database')
             self.cursor.execute('ROLLBACK')
 

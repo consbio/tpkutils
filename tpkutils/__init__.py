@@ -18,13 +18,11 @@ from collections import namedtuple
 from zipfile import ZipFile
 from io import BytesIO
 import logging
-from tpkutils.mbtiles import Mbtiles
+from tpkutils.mbtiles import MBtiles
 from tpkutils.util import geo_bounds
 
 
 logger = logging.getLogger('tpkutils')
-# logger.setLevel(logging.DEBUG)
-# logger.addHandler(logging.StreamHandler())
 
 
 BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles
@@ -157,7 +155,7 @@ class TPK(object):
                     bundles.append(name)
 
         for fname in bundles:
-            logger.debug('Reading bundle: {0}'.format(fname))
+            logger.info('Reading bundle: {0}'.format(fname))
             start = time.time()
             # parse filename to determine row / col offset for bundle
             # offsets are in hex
@@ -213,7 +211,7 @@ class TPK(object):
         if not filename.endswith('.mbtiles'):
             filename = '{0}.mbtiles'.format(filename)
 
-        mbtiles = Mbtiles(filename, 'w')
+        mbtiles = MBtiles(filename, 'w')
         if zoom is None:
             zoom = self.zoom_levels
         elif isinstance(zoom, int):

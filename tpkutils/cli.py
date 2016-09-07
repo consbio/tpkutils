@@ -3,6 +3,7 @@ import os
 import sys
 import time
 import click
+
 from tpkutils import TPK
 
 logger = logging.getLogger('tpkutils')
@@ -59,6 +60,3 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
     tpk.close()
 
     print('Read tiles in {0:2f} seconds'.format(time.time() - start))
-
-if __name__ == '__main__':
-    cli()

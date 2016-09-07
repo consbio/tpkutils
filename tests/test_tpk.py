@@ -1,12 +1,12 @@
 import os
 import sqlite3
+import pytest
+
 from tpkutils import TPK
 
 
 # First 50 bytes of the tile at z=2,x=0,y=1  (ArcGIS scheme), z=2,x=0,y=2 (xyz scheme)
 TEST_TILE_BYTES = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01\x00\x00\x00\x01\x00\x08\x06\x00\x00\x00\\r\xa8f\x00\x00\x00\tpHYs\x00\x00\x0e\xc4\x00\x00\x0e\xc4\x01'
-
-
 
 
 def test_metadata():
@@ -30,6 +30,9 @@ def test_read_tile():
     assert tile.x == 0
     assert tile.y == 1
     assert tile.data[:50] == TEST_TILE_BYTES
+
+    tile2 = next(tpk.read_tiles(zoom=2))
+    assert tile2 == tile
 
 
 def test_export_mbtiles(tmpdir):
@@ -64,3 +67,35 @@ def test_export_mbtiles(tmpdir):
         assert bounds[0] == ','.join('{0:4f}'.format(v) for v in tpk.bounds)
 
         cursor.close()
+
+
+def test_export_mbtiles_add_suffix(tmpdir):
+    tpk = TPK('tests/data/ecoregions.tpk')
+    mbtiles_filename = str(tmpdir.join('test'))
+
+    tpk.to_mbtiles(mbtiles_filename)
+    tpk.close()
+
+    assert os.path.exists('{0}.mbtiles'.format(mbtiles_filename))
+
+
+def test_export_mbtiles_int_zoom(tmpdir):
+    tpk = TPK('tests/data/ecoregions.tpk')
+    mbtiles_filename = str(tmpdir.join('test.mbtiles'))
+
+    tpk.to_mbtiles(mbtiles_filename, zoom=1)
+    tpk.close()
+
+    assert os.path.exists(mbtiles_filename)
+
+
+def test_export_mbtiles_errors(tmpdir):
+    tpk = TPK('tests/data/ecoregions.tpk')
+    tpk.format = 'mixed'  # this is a hack to make test fail, need a test file for this
+
+    mbtiles_filename = str(tmpdir.join('test.mbtiles'))
+
+    with pytest.raises(ValueError):
+        tpk.to_mbtiles(mbtiles_filename)
+
+    tpk.close()
