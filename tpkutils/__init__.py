@@ -34,7 +34,8 @@ INDEX_SIZE = 5  # tile index is stored in 5 byte values
 # sha1 hashes of empty tiles (completely black or white)
 EMPTY_TILES = {
     '4ae57bed2b996ae0bd820a1b36561e26ef6d1bc8', # completely white JPG
-    'aba7a74e3b932e32bdb21d670a16a08a9460591a'  # blank PNG32
+    'aba7a74e3b932e32bdb21d670a16a08a9460591a',  # blank PNG
+    '89eff69bee598f8c3217ca5363c2ef356fd0c394',  # blank PNG
  }
 
 
@@ -80,10 +81,6 @@ def read_tile(bundle, offset):
 
     bundle.seek(offset)
     return bundle.read(buffer_to_offset(bundle.read(4)))
-
-
-
-
 
 
 # TODO: context manager
@@ -258,7 +255,7 @@ class TPK(object):
 
         mbtiles.close()
 
-    def to_disk(self, path, zoom=None, scheme='xyz', drop_empty=False):
+    def to_disk(self, path, zoom=None, scheme='arcgis', drop_empty=False):
         """
         Export tile package to directory structure: z/x_y.<ext> where <ext> is
         png or jpg.  If output exists, this function will raise an IOError.
@@ -269,7 +266,7 @@ class TPK(object):
             path in which to create output
         zoom: int or list-like of ints, default: None (all tiles exported)
             zoom levels to export to disk
-        scheme: string, one of ('xyz', 'arcgis')
+        scheme: string, one of ('xyz', 'arcgis'), default: arcgis
             tile numbering scheme.  If xyz, y value will be flipped from ArcGIS
             scheme.  (xyz scheme is used by online tile services)
         drop_empty: bool, default False

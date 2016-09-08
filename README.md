@@ -15,6 +15,23 @@ which contain tile caches using the
 such as [mbtileserver](https://github.com/consbio/mbtileserver)
 
 
+## Our workflow
+* create beautiful maps in ArcGIS Desktop
+* [export to ArcGIS tile package](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/how-to-create-a-tile-package.htm)
+* convert to mbtiles format using this package
+* host as an XYZ tile service using [mbtileserver](https://github.com/consbio/mbtileserver)
+
+
+## Installation
+For now, while this is under active development, install from master
+branch on GitHub using pip:
+```
+pip install git+https://github.com/consbio/tpkutils.git --upgrade
+```
+
+Once functionality stabilizes, it will be added to
+[PyPi](https://pypi.python.org/pypi)
+
 
 ## Usage
 
@@ -27,10 +44,16 @@ from tpkutils import TPK
 tpk = TPK('my_tiles.tpk')
 ```
 
+You can query basic information about the tile package:
+```
+tpk.bounds  # tuple of (xmin, ymin, xmax, ymax) in geographic coordinates
+tpk.zoom_levels  # list of zoom levels available in package [0,1,...]
+```
+
 
 #### Tile access
 
-You can iterate over individual tiles - for instance, to save to disk.  
+You can iterate over individual tiles - for instance, to save to disk.
 Tiles are returned as a 
 `namedtuple`: `Tile(z, x, y, data)`:
 ```
@@ -44,7 +67,7 @@ You can also just read tiles for a  given zoom level or levels:
 tpk.read_tiles(zoom=[4])
 ```
 
-By default, tiles are returned according to the ArcGIS tile scheme.  
+By default, tiles are returned according to the ArcGIS tile scheme.
 To output tiles in xyz scheme, the y-value needs to be flipped:
 ```
 tpk.read_tiles(flip_y=True)
@@ -55,8 +78,7 @@ tpk.read_tiles(flip_y=True)
 x or y is currently provided.
 
 
-
-#### Export to mbtiles
+### Export to mbtiles
 
 You can export a tile package to a [MapBox mbtiles v1.1](https://github.com/mapbox/mbtiles-spec/blob/master/1.1/spec.md)  file:
 ```
@@ -68,10 +90,102 @@ Or just export a subset of zoom levels:
 tpk.to_mbtiles('fewer_tiles.mbtiles', zoom=[0,1,2,3,4])
 ```
 
-*Note:* tiles are output to mbtiles format in xyz tile scheme.
-
-*Also note:* [mixed format](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) 
+*Note:*
+* tiles are output to mbtiles format in xyz tile scheme.
+* [mixed format](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) 
 tiles are not supported for export to mbtiles.
+
+
+### Export to disk
+You can export the tile package to disk.  Files are written to
+'zoom/x_y.[ext]' where [ext] is one png or jpg.  By default, tiles will
+be written in the 'arcgis' tile scheme.  If using tiles in an XYZ tile
+server or client, use the 'xyz' tile scheme.  
+
+Output directory must be empty.
+```
+tpk.to_disk('my_tiles')
+```
+
+You can export a subset of zoom levels, use the 'xyz' scheme, and
+omit empty (completely blank PNG or completely white JPG) tiles:
+```
+tpk.to_disk('my_tiles', zoom=[0,1,2], scheme='xyz', drop_empty=True)
+```
+
+*Note:* 
+* not recommended for large tile packages, as this will
+potentially create a large number of directories and files.
+* 'mixed' format is not supported
+
+
+### Metadata / descriptive attributes
+Basic attributes describing the tile package are extracted from
+configuration files in the tile package.  These are typically populated
+from the user interface for the ArcGIS tile package tool:
+* name: autopopulated by ArcGIS tile package tool, based on filename of map document
+* description: optional field in ArcGIS tile package tool
+* summary: required field in ArcGIS tile package tool
+* tags: required field in ArcGIS tile package tool
+* credits: optional field in ArcGIS tile package tool
+* use_constraints: optional field in ArcGIS tile package tool
+
+
+#### MBtiles metadata
+The metadata table in the mbtiles file is created from the attributes
+of the tile package.  Right now, any of these attributes can be
+overwritten to control the contents of this table:
+
+```
+tpk.name = 'Some new name'
+tpk.description = 'This is a much better description'
+tpk.to_mbtiles(...)
+```
+
+Two additional attributes are exposed specifically for use in mbtiles:
+```
+tpk.version  # version of tileset, defaults to 1.0.0
+tpk.attribution  # copyright / attribution statement.  Used by some 
+                 # clients for attribution info shown on map.
+```
+
+
+## Command line interface
+You can also use the command line to perform export operations:
+
+```
+$ tpk export mbtiles --help
+Usage: tpk export mbtiles [OPTIONS] TPK_FILENAME MBTILES_FILENAME
+
+  Export the tile package to mbtiles format
+
+Options:
+  -z, --zoom TEXT  Limit zoom levels to export: "0,1,2"
+  --overwrite      Overwrite existing mbtiles file  [default: False]
+  -v, --verbose    Verbose output
+  --help           Show this message and exit.
+```
+
+```
+$ tpk export disk --help
+Usage: tpk export disk [OPTIONS] TPK_FILENAME PATH
+
+  Export the tile package to disk: z/x_y.<ext>
+
+  Will use the 'arcgis' tile scheme by default.  If using with an XYZ tile
+  server or client, use the 'xyz' tile scheme.
+
+  Not recommended for higher zoom levels as this will produce large
+  directory trees.
+
+Options:
+  -z, --zoom TEXT        Limit zoom levels to export: "0,1,2"
+  --scheme [xyz|arcgis]  Tile numbering scheme: xyz or arcgis  [default:
+                         arcgis]
+  --drop-empty           Drop empty tiles from output
+  -v, --verbose          Verbose output
+  --help                 Show this message and exit.
+```
 
 
 
@@ -107,3 +221,7 @@ SQL for creating mbtiles database derived from
 
 ArcGIS is a trademark of of [ESRI](http://esri.com) and is used here
 to refer to specific technologies.  No endorsement by ESRI is implied.
+
+
+## License:
+See LICENSE.md

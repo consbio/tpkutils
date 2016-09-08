@@ -69,7 +69,7 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
     '-z', '--zoom', type=click.STRING, default=None,
     help='Limit zoom levels to export: "0,1,2"')
 @click.option(
-    '--scheme', type=click.Choice(('xyz', 'arcgis')), default='xyz',
+    '--scheme', type=click.Choice(('xyz', 'arcgis')), default='arcgis',
     help='Tile numbering scheme: xyz or arcgis', show_default=True)
 @click.option(
     '--drop-empty', type=click.BOOL, is_flag=True, default=False,
@@ -79,6 +79,10 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
 @click.option('-v', '--verbose', count=True, help='Verbose output')
 def disk(tpk_filename, path, zoom, scheme, drop_empty, verbose):
     """Export the tile package to disk: z/x_y.<ext>
+
+    Will use the 'arcgis' tile scheme by default.  If using with an XYZ tile
+    server or client, use the 'xyz' tile scheme.
+
     Not recommended for higher zoom levels as this will produce large
     directory trees."""
 

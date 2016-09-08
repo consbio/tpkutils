@@ -19,7 +19,7 @@ def test_invalid_mode(tmpdir):
 
 
 def test_add_tile(tmpdir):
-    tpk = TPK('tests/data/ecoregions.tpk')
+    tpk = TPK('tests/data/states_filled.tpk')
     mbtiles_filename = str(tmpdir.join('test.mbtiles'))
 
     tile = next(tpk.read_tiles(zoom=1, flip_y=True))
