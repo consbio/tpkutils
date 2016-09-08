@@ -7,7 +7,6 @@ import logging
 logger = logging.getLogger('tpkutils')
 
 
-# TODO: enable context manager
 class MBtiles(object):
     """
     Interface for creating and populating mbtiles files.
@@ -46,6 +45,12 @@ class MBtiles(object):
         schema = open(__file__.replace('.py', '_schema.sql')).read()
         self.cursor.executescript(schema)
         self.db.commit()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def add_tile(self, z, x, y, data):
         """

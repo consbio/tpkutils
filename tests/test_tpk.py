@@ -12,38 +12,37 @@ from tpkutils import TPK
 TILE_2_0_2_SHA1 = '20e903aa7604a7c1a6d05f2f68e10a23ce5695f2'
 
 def test_metadata():
-    tpk = TPK('tests/data/states_filled.tpk')
+    with TPK('tests/data/states_filled.tpk') as tpk:
+        assert tpk.version == '1.0.0'
+        assert tpk.attribution == ''
 
-    assert tpk.version == '1.0.0'
-    assert tpk.attribution == ''
-
-    assert tpk.name == 'states_filled'
-    assert tpk.summary == 'states'
-    assert tpk.tags == 'states'
-    assert tpk.description == ''
-    assert tpk.credits == 'US Census Bureau'
-    assert tpk.use_constraints == ''
+        assert tpk.name == 'states_filled'
+        assert tpk.summary == 'states'
+        assert tpk.tags == 'states'
+        assert tpk.description == ''
+        assert tpk.credits == 'US Census Bureau'
+        assert tpk.use_constraints == ''
 
 
 def test_read_tile():
-    tpk = TPK('tests/data/states_filled.tpk')
-    tile = next(tpk.read_tiles(zoom=[2]))
+    with TPK('tests/data/states_filled.tpk') as tpk:
+        tile = next(tpk.read_tiles(zoom=[2]))
 
-    assert tile.z == 2
-    assert tile.x == 0
-    assert tile.y == 1
-    assert hashlib.sha1(tile.data).hexdigest() == TILE_2_0_2_SHA1
+        assert tile.z == 2
+        assert tile.x == 0
+        assert tile.y == 1
+        assert hashlib.sha1(tile.data).hexdigest() == TILE_2_0_2_SHA1
 
-    tile2 = next(tpk.read_tiles(zoom=2))
-    assert tile2 == tile
+        tile2 = next(tpk.read_tiles(zoom=2))
+        assert tile2 == tile
 
 
 def test_export_mbtiles(tmpdir):
-    tpk = TPK('tests/data/states_filled.tpk')
-    mbtiles_filename = str(tmpdir.join('test.mbtiles'))
+    with TPK('tests/data/states_filled.tpk') as tpk:
+        mbtiles_filename = str(tmpdir.join('test.mbtiles'))
 
-    tpk.to_mbtiles(mbtiles_filename)
-    tpk.close()
+        tpk.to_mbtiles(mbtiles_filename)
+        tpk.close()
 
     assert os.path.exists(mbtiles_filename)
 

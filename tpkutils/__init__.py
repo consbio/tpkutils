@@ -83,7 +83,6 @@ def read_tile(bundle, offset):
     return bundle.read(buffer_to_offset(bundle.read(4)))
 
 
-# TODO: context manager
 class TPK(object):
     def __init__(self, filename):
         """
@@ -104,6 +103,7 @@ class TPK(object):
         tile_root = 'v101/Layers'  # TODO: automatically determine
 
         # Bounding box and projection info is in .../Layers/conf.cdi
+        # TODO: there is a already go format in the servicedescriptions/mapserver/mapserver.json file
         conf_filename = '{0}/{1}'.format(tile_root, 'conf.cdi')
         xml = ElementTree.fromstring(self._fp.read(conf_filename))
         wm_bounds = [
@@ -129,6 +129,12 @@ class TPK(object):
         self.description = xml.find('description').text or ''  # optional
         self.credits = xml.find('accessinformation').text or ''  # optional, Credits in ArcGIS
         self.use_constraints = xml.find('licenseinfo').text or ''  # optional, Use Constraints in ArcGIS
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
 
     def read_tiles(self, zoom=None, flip_y=False):
         """
@@ -216,44 +222,43 @@ class TPK(object):
         if not filename.endswith('.mbtiles'):
             filename = '{0}.mbtiles'.format(filename)
 
-        mbtiles = MBtiles(filename, 'w')
-        if zoom is None:
-            zoom = self.zoom_levels
-        elif isinstance(zoom, int):
-            zoom = [zoom]
+        with MBtiles(filename, 'w') as mbtiles:
+            if zoom is None:
+                zoom = self.zoom_levels
+            elif isinstance(zoom, int):
+                zoom = [zoom]
 
-        zoom = list(zoom)
-        zoom.sort()
+            zoom = list(zoom)
+            zoom.sort()
 
-        mbtiles.add_tiles(self.read_tiles(zoom, flip_y=True))
+            mbtiles.add_tiles(self.read_tiles(zoom, flip_y=True))
 
-        bounds = self.bounds
-        center = '{0:4f},{1:4f},{2}'.format(
-            bounds[0] + (bounds[2] - bounds[0]) / 2.0,
-            bounds[1] + (bounds[3] - bounds[1]) / 2.0,
-            max(zoom[0], int((zoom[-1] - zoom[0]) / 4.0))  # Tune this
-        )
+            bounds = self.bounds
+            center = '{0:4f},{1:4f},{2}'.format(
+                bounds[0] + (bounds[2] - bounds[0]) / 2.0,
+                bounds[1] + (bounds[3] - bounds[1]) / 2.0,
+                max(zoom[0], int((zoom[-1] - zoom[0]) / 4.0))  # Tune this
+            )
 
-        mbtiles.set_metadata({
-            'name': self.name,
-            'description': self.summary,  # not description, which is optional
-            'version': self.version,
-            'attribution': self.attribution,
-            'tags': self.tags,
-            'credits': self.credits,
-            'use_constraints': self.use_constraints,
+            mbtiles.set_metadata({
+                'name': self.name,
+                'description': self.summary,  # not description, which is optional
+                'version': self.version,
+                'attribution': self.attribution,
+                'tags': self.tags,
+                'credits': self.credits,
+                'use_constraints': self.use_constraints,
 
-            'type': 'overlay',
-            'format': self.format.lower().replace('jpeg', 'jpg')[:3],
-            'bounds': ','.join('{0:4f}'.format(v) for v in self.bounds),
-            'center': center,
-            'minzoom': str(zoom[0]),
-            'maxzoom': str(zoom[-1]),
+                'type': 'overlay',
+                'format': self.format.lower().replace('jpeg', 'jpg')[:3],
+                'bounds': ','.join('{0:4f}'.format(v) for v in self.bounds),
+                'center': center,
+                'minzoom': str(zoom[0]),
+                'maxzoom': str(zoom[-1]),
 
-            'legend': ''  # TODO: extract from svc symbols
-        })
+                'legend': ''  # TODO: extract from svc symbols
+            })
 
-        mbtiles.close()
 
     def to_disk(self, path, zoom=None, scheme='arcgis', drop_empty=False):
         """

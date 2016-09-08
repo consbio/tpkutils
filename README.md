@@ -42,6 +42,14 @@ Open a tile package:
 from tpkutils import TPK
 
 tpk = TPK('my_tiles.tpk')
+
+# close when done
+tpk.close()
+```
+
+Or use `with`:
+```
+with TPK('my_tiles.tpk') as tpk:
 ```
 
 You can query basic information about the tile package:
