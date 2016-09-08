@@ -46,7 +46,7 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
     configure_logging(verbose)
 
     if os.path.exists(mbtiles_filename) and not overwrite:
-        raise click.BadArgumentUsage(
+        raise click.ClickException(
             'Output exists and overwrite is false. '
             'Use --overwrite option to overwrite')
 
@@ -56,7 +56,44 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
         zoom = [int(v) for v in zoom.split(',')]
 
     tpk = TPK(tpk_filename)
-    tpk.to_mbtiles(mbtiles_filename, zoom, overwrite)
+    tpk.to_mbtiles(mbtiles_filename, zoom)
     tpk.close()
 
-    print('Read tiles in {0:2f} seconds'.format(time.time() - start))
+    print('Exported tiles in {0:2f} seconds'.format(time.time() - start))
+
+
+@export.command(short_help='Export the tile package to disk')
+@click.argument('tpk_filename', type=click.Path(exists=True))
+@click.argument('path', type=click.Path())
+@click.option(
+    '-z', '--zoom', type=click.STRING, default=None,
+    help='Limit zoom levels to export: "0,1,2"')
+@click.option(
+    '--scheme', type=click.Choice(('xyz', 'arcgis')), default='xyz',
+    help='Tile numbering scheme: xyz or arcgis', show_default=True)
+@click.option(
+    '--drop-empty', type=click.BOOL, is_flag=True, default=False,
+    help='Drop empty tiles from output'
+)
+
+@click.option('-v', '--verbose', count=True, help='Verbose output')
+def disk(tpk_filename, path, zoom, scheme, drop_empty, verbose):
+    """Export the tile package to disk: z/x_y.<ext>
+    Not recommended for higher zoom levels as this will produce large
+    directory trees."""
+
+    configure_logging(verbose)
+
+    if os.path.exists(path) and len(os.listdir(path)) > 0:
+        raise click.ClickException('Output directory must be empty.')
+
+    start = time.time()
+
+    if zoom is not None:
+        zoom = [int(v) for v in zoom.split(',')]
+
+    tpk = TPK(tpk_filename)
+    tpk.to_disk(path, zoom, scheme, drop_empty)
+    tpk.close()
+
+    print('Exported tiles in {0:2f} seconds'.format(time.time() - start))

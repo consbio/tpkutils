@@ -60,7 +60,7 @@ def test_export_mbtiles_existing_output(runner, tmpdir):
     assert os.path.exists(mbtiles)
 
     result = runner.invoke(cli, ['export', 'mbtiles', tpk, mbtiles])
-    assert result.exit_code == 2
+    assert result.exit_code == 1
     assert 'Output exists and overwrite is false' in result.output
 
     result = runner.invoke(cli, ['export', 'mbtiles', tpk, mbtiles, '--overwrite'])
@@ -79,3 +79,40 @@ def test_export_mbtiles_verbosity(runner, tmpdir):
     result = runner.invoke(cli, ['export', 'mbtiles', tpk, mbtiles, '-v', '-v'])
     assert result.exit_code == 0
     # assert 'DEBUG:tpkutils' in result.output  # not working w/ pytest
+
+
+def test_export_disk(runner, tmpdir):
+    tpk = 'tests/data/ecoregions.tpk'
+    path = str(tmpdir.join('tiles'))
+
+    result = runner.invoke(cli, ['export', 'disk', tpk, path])
+    assert result.exit_code == 0
+    assert os.path.exists(path)
+    assert os.path.exists(os.path.join(path, '0/0_0.png'))
+
+
+def test_export_disk_zoom(runner, tmpdir):
+    tpk = 'tests/data/ecoregions.tpk'
+    path = str(tmpdir.join('tiles'))
+
+    result = runner.invoke(cli, ['export', 'disk', tpk, path,
+                                 '--zoom', '1'])
+
+    assert result.exit_code == 0
+    assert os.path.exists(path)
+    print(os.listdir(os.path.join(path, '1')))
+    assert os.path.exists(os.path.join(path, '1/0_1.png'))
+    assert not os.path.exists(os.path.join(path, '0/0_0.png'))
+
+
+def test_export_disk_existing_output(runner, tmpdir):
+    tpk = 'tests/data/ecoregions.tpk'
+    path = str(tmpdir.join('tiles'))
+
+    result = runner.invoke(cli, ['export', 'disk', tpk, path])
+    assert result.exit_code == 0
+    assert os.path.exists(path)
+
+    result = runner.invoke(cli, ['export', 'disk', tpk, path])
+    assert result.exit_code == 1
+    assert 'Output directory must be empty' in result.output

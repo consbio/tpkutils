@@ -18,6 +18,8 @@ from collections import namedtuple
 from zipfile import ZipFile
 from io import BytesIO
 import logging
+import hashlib
+
 from tpkutils.mbtiles import MBtiles
 from tpkutils.util import geo_bounds
 
@@ -28,6 +30,12 @@ logger = logging.getLogger('tpkutils')
 BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles
 # TODO: bundle size is stored in one of the configuration files
 INDEX_SIZE = 5  # tile index is stored in 5 byte values
+
+# sha1 hashes of empty tiles (completely black or white)
+EMPTY_TILES = {
+    '4ae57bed2b996ae0bd820a1b36561e26ef6d1bc8', # completely white JPG
+    'aba7a74e3b932e32bdb21d670a16a08a9460591a'  # blank PNG32
+ }
 
 
 Tile = namedtuple('Tile', ['z', 'x', 'y', 'data'])
@@ -191,7 +199,7 @@ class TPK(object):
                 index += 1
             logger.debug('Time to read bundle: {0:2f}'.format(time.time() - start))
 
-    def to_mbtiles(self, filename, zoom=None, overwrite=False):
+    def to_mbtiles(self, filename, zoom=None):
         """
         Export tile package to mbtiles v1.1 file, optionally limited to zoom
         levels.  If filename exists, it will be overwritten.  If filename
@@ -249,6 +257,57 @@ class TPK(object):
         })
 
         mbtiles.close()
+
+    def to_disk(self, path, zoom=None, scheme='xyz', drop_empty=False):
+        """
+        Export tile package to directory structure: z/x_y.<ext> where <ext> is
+        png or jpg.  If output exists, this function will raise an IOError.
+
+        Parameters
+        ----------
+        path: string
+            path in which to create output
+        zoom: int or list-like of ints, default: None (all tiles exported)
+            zoom levels to export to disk
+        scheme: string, one of ('xyz', 'arcgis')
+            tile numbering scheme.  If xyz, y value will be flipped from ArcGIS
+            scheme.  (xyz scheme is used by online tile services)
+        drop_empty: bool, default False
+            if True, tiles that are empty will not be output
+        """
+
+        ext = self.format.lower().replace('jpeg', 'jpg')
+        if ext == 'mixed':
+            raise ValueError('Mixed format tiles are not supported for export to disk')
+        ext = ext[:3]
+
+        if not scheme in ('xyz', 'arcgis'):
+            raise ValueError('scheme must be xyz or arcgis')
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+        elif len(os.listdir(path)) > 0:
+            raise IOError('Output directory must be empty.')
+
+        if zoom is None:
+            zoom = self.zoom_levels
+        elif isinstance(zoom, int):
+            zoom = [zoom]
+
+        zoom = list(zoom)
+        zoom.sort()
+
+        for tile in self.read_tiles(zoom, flip_y=(scheme == 'xyz')):
+            if drop_empty and hashlib.sha1(tile.data).hexdigest() in EMPTY_TILES:
+                continue
+
+            out_path = '{0}/{1}'.format(path, tile.z)
+            if not os.path.exists(out_path):
+                os.makedirs(out_path)
+
+            out_filename = '{0}/{1}_{2}.{3}'.format(out_path, tile.x, tile.y, ext)
+            with open(out_filename, 'wb') as outfile:
+                outfile.write(tile.data)
 
     def close(self):
         self._fp.close()
