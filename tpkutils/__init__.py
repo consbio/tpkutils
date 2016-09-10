@@ -19,9 +19,9 @@ from zipfile import ZipFile
 from io import BytesIO
 import logging
 import hashlib
+import json
 
 from tpkutils.mbtiles import MBtiles
-from tpkutils.util import geo_bounds
 
 
 logger = logging.getLogger('tpkutils')
@@ -99,17 +99,11 @@ class TPK(object):
         self.version = '1.0.0'
         self.attribution = ''
 
+        # Fields that may or may not be populated
+        self.legend = []
+
         logger.debug('Reading package metadata')
         tile_root = 'v101/Layers'  # TODO: automatically determine
-
-        # Bounding box and projection info is in .../Layers/conf.cdi
-        # TODO: there is a already go format in the servicedescriptions/mapserver/mapserver.json file
-        conf_filename = '{0}/{1}'.format(tile_root, 'conf.cdi')
-        xml = ElementTree.fromstring(self._fp.read(conf_filename))
-        wm_bounds = [
-            float(xml.find(e).text) for e in ('XMin', 'YMin', 'XMax', 'YMax')
-        ]
-        self.bounds = geo_bounds(*wm_bounds)
 
         # File format, zoom levels, etc in .../Layers/conf.xml
         conf_filename = '{0}/{1}'.format(tile_root, 'conf.xml')
@@ -129,6 +123,31 @@ class TPK(object):
         self.description = xml.find('description').text or ''  # optional
         self.credits = xml.find('accessinformation').text or ''  # optional, Credits in ArcGIS
         self.use_constraints = xml.find('licenseinfo').text or ''  # optional, Use Constraints in ArcGIS
+
+        # Bounding box, legend, etc is in .../servicedescriptions/mapserver/mapserver.json
+        sd = json.loads(self._fp.read('servicedescriptions/mapserver/mapserver.json').decode('utf-8'))
+        geoExtent = sd['resourceInfo']['geoFullExtent']
+        self.bounds = [geoExtent[k] for k in ('xmin', 'ymin', 'xmax', 'ymax')]
+
+        # convert to dict for easier access
+        resources = {r['name']: r for r in sd['resources']}
+
+        if 'legend' in resources:
+            for layer in resources['legend']['contents'].get('layers', []):
+                self.legend.append(
+                    {
+                        'layer': layer['layerName'],
+                        'entries': [
+                            {
+                                'base64': l['imageData'],
+                                'label': l['label'],
+                                'type': l['contentType']
+                            } for l in layer['legend']
+                        ]
+                    }
+                )
+
+
 
     def __enter__(self):
         return self
@@ -256,7 +275,7 @@ class TPK(object):
                 'minzoom': str(zoom[0]),
                 'maxzoom': str(zoom[-1]),
 
-                'legend': ''  # TODO: extract from svc symbols
+                'legend': json.dumps(self.legend) if self.legend else ''
             })
 
 

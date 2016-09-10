@@ -23,6 +23,8 @@ def test_metadata():
         assert tpk.credits == 'US Census Bureau'
         assert tpk.use_constraints == ''
 
+        assert tpk.bounds == [-179.23108600000003, -14.601813000000014, 179.859681, 71.441059]
+
 
 def test_read_tile():
     with TPK('tests/data/states_filled.tpk') as tpk:
