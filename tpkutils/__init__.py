@@ -132,16 +132,25 @@ class TPK(object):
         # convert to dict for easier access
         resources = {r['name']: r for r in sd['resources']}
 
+
+        def getLabel(element):
+            if 'label' in element:
+                return element['label']
+            if 'values' in element:
+                return ', '.join(element['values'])
+
         if 'legend' in resources:
             for layer in resources['legend']['contents'].get('layers', []):
                 self.legend.append(
                     {
-                        'layer': layer['layerName'],
-                        'entries': [
+                        'name': layer['layerName'],
+                        'elements': [
                             {
-                                'base64': l['imageData'],
-                                'label': l['label'],
-                                'type': l['contentType']
+                                #data:image/png;base64,
+                                'imageData': 'data:{0};base64,{1}'.format(
+                                    l['contentType'], l['imageData']
+                                ),
+                                'label': getLabel(l)
                             } for l in layer['legend']
                         ]
                     }
