@@ -221,7 +221,7 @@ Tile package format is described [here](https://gdbgeek.wordpress.com/2012/08/09
 
 Inspired by:
 * [tiler-arcgis-bundle](https://github.com/FuZhenn/tiler-arcgis-bundle)
-* [mbutiles](https://github.com/mapbox/mbutils)
+* [mbutil](https://github.com/mapbox/mbutil)
 * [node-mbtiles](https://github.com/mapbox/node-mbtiles)
 
 SQL for creating mbtiles database derived from
