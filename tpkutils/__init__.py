@@ -288,9 +288,10 @@ class TPK(object):
             })
 
 
-    def to_disk(self, path, zoom=None, scheme='arcgis', drop_empty=False):
+    def to_disk(self, path, zoom=None, scheme='arcgis', drop_empty=False,
+                path_format='{z}/{x}/{y}.{ext}'):
         """
-        Export tile package to directory structure: z/x_y.<ext> where <ext> is
+        Export tile package to directory structure: z/x/y.<ext> where <ext> is
         png or jpg.  If output exists, this function will raise an IOError.
 
         Parameters
@@ -304,6 +305,9 @@ class TPK(object):
             scheme.  (xyz scheme is used by online tile services)
         drop_empty: bool, default False
             if True, tiles that are empty will not be output
+        path_format: string with format placeholders {z}, {x}, {y}, {ext}
+            Format string must include z, x, y, ext parameters.
+
         """
 
         ext = self.format.lower().replace('jpeg', 'jpg')
@@ -331,12 +335,12 @@ class TPK(object):
             if drop_empty and hashlib.sha1(tile.data).hexdigest() in EMPTY_TILES:
                 continue
 
-            out_path = '{0}/{1}'.format(path, tile.z)
+            filename = path_format.format(z=tile.z, x=tile.x, y=tile.y, ext=ext)
+            out_path = os.path.join(path, os.path.split(filename)[0])
             if not os.path.exists(out_path):
                 os.makedirs(out_path)
 
-            out_filename = '{0}/{1}_{2}.{3}'.format(out_path, tile.x, tile.y, ext)
-            with open(out_filename, 'wb') as outfile:
+            with open(os.path.join(path, filename), 'wb') as outfile:
                 outfile.write(tile.data)
 
     def close(self):

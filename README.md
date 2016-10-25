@@ -106,9 +106,13 @@ tiles are not supported for export to mbtiles.
 
 ### Export to disk
 You can export the tile package to disk.  Files are written to
-'zoom/x_y.[ext]' where [ext] is one png or jpg.  By default, tiles will
-be written in the 'arcgis' tile scheme.  If using tiles in an XYZ tile
-server or client, use the 'xyz' tile scheme.  
+'[z]/[x]/[y].[ext]' where [ext] is one png or jpg.  Alternative file
+names can be provided using the `--path-format` option.
+
+
+By default, tiles will be written in the 'arcgis' tile scheme.
+If using tiles in an XYZ tilevserver or client, use the 'xyz' tile 
+scheme.  
 
 Output directory must be empty.
 ```
@@ -178,7 +182,8 @@ Options:
 $ tpk export disk --help
 Usage: tpk export disk [OPTIONS] TPK_FILENAME PATH
 
-  Export the tile package to disk: z/x_y.<ext>
+  Export the tile package to disk: z/x/y.<ext> or pattern specified using
+  --path-format option.
 
   Will use the 'arcgis' tile scheme by default.  If using with an XYZ tile
   server or client, use the 'xyz' tile scheme.
@@ -191,6 +196,9 @@ Options:
   --scheme [xyz|arcgis]  Tile numbering scheme: xyz or arcgis  [default:
                          arcgis]
   --drop-empty           Drop empty tiles from output
+  --path-format TEXT     Format expression for output tile files, within
+                         output path. Must contain parameters for z, x, y, and
+                         ext (extension).  [default: {z}/{x}/{y}.{ext}]
   -v, --verbose          Verbose output
   --help                 Show this message and exit.
 ```

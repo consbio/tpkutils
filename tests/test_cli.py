@@ -88,7 +88,7 @@ def test_export_disk(runner, tmpdir):
     result = runner.invoke(cli, ['export', 'disk', tpk, path])
     assert result.exit_code == 0
     assert os.path.exists(path)
-    assert os.path.exists(os.path.join(path, '0/0_0.png'))
+    assert os.path.exists(os.path.join(path, '0/0/0.png'))
 
 
 def test_export_disk_zoom(runner, tmpdir):
@@ -100,8 +100,8 @@ def test_export_disk_zoom(runner, tmpdir):
 
     assert result.exit_code == 0
     assert os.path.exists(path)
-    assert os.path.exists(os.path.join(path, '1/0_0.png'))
-    assert not os.path.exists(os.path.join(path, '0/0_0.png'))
+    assert os.path.exists(os.path.join(path, '1/0/0.png'))
+    assert not os.path.exists(os.path.join(path, '0/0/0.png'))
 
 
 def test_export_disk_existing_output(runner, tmpdir):
@@ -126,8 +126,8 @@ def test_export_disk_scheme(runner, tmpdir):
 
     assert result.exit_code == 0
     assert os.path.exists(path)
-    assert os.path.exists(os.path.join(path, '1/0_1.png'))
-    assert not os.path.exists(os.path.join(path, '1/0_0.png'))
+    assert os.path.exists(os.path.join(path, '1/0/1.png'))
+    assert not os.path.exists(os.path.join(path, '1/0/0.png'))
 
 
 def test_export_disk_drop_empty(runner, tmpdir):
@@ -139,5 +139,5 @@ def test_export_disk_drop_empty(runner, tmpdir):
 
     assert result.exit_code == 0
     assert os.path.exists(path)
-    assert os.path.exists(os.path.join(path, '4/2_6.png'))
-    assert not os.path.exists(os.path.join(path, '4/2_7.png'))
+    assert os.path.exists(os.path.join(path, '4/2/6.png'))
+    assert not os.path.exists(os.path.join(path, '4/2/7.png'))

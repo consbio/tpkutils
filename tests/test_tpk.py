@@ -126,8 +126,8 @@ def test_export_disk_int_zoom(tmpdir):
     tpk.close()
 
     assert os.path.exists(path)
-    assert os.path.exists(os.path.join(path, '1/0_0.png'))
-    assert not os.path.exists(os.path.join(path, '0/0_0.png'))
+    assert os.path.exists(os.path.join(path, '1/0/0.png'))
+    assert not os.path.exists(os.path.join(path, '0/0/0.png'))
 
 
 def test_export_disk_mixed_format(tmpdir):

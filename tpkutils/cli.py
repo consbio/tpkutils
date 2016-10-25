@@ -75,10 +75,17 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
     '--drop-empty', type=click.BOOL, is_flag=True, default=False,
     help='Drop empty tiles from output'
 )
+@click.option(
+    '--path-format', type=click.STRING, default='{z}/{x}/{y}.{ext}',
+    help='Format expression for output tile files, within output path. '
+         'Must contain parameters for z, x, y, and ext (extension).',
+    show_default=True
+)
 
 @click.option('-v', '--verbose', count=True, help='Verbose output')
-def disk(tpk_filename, path, zoom, scheme, drop_empty, verbose):
-    """Export the tile package to disk: z/x_y.<ext>
+def disk(tpk_filename, path, zoom, scheme, drop_empty, path_format, verbose):
+    """Export the tile package to disk: z/x/y.<ext> or pattern specified using
+    --path-format option.
 
     Will use the 'arcgis' tile scheme by default.  If using with an XYZ tile
     server or client, use the 'xyz' tile scheme.
@@ -97,7 +104,7 @@ def disk(tpk_filename, path, zoom, scheme, drop_empty, verbose):
         zoom = [int(v) for v in zoom.split(',')]
 
     tpk = TPK(tpk_filename)
-    tpk.to_disk(path, zoom, scheme, drop_empty)
+    tpk.to_disk(path, zoom, scheme, drop_empty, path_format)
     tpk.close()
 
     print('Exported tiles in {0:2f} seconds'.format(time.time() - start))
