@@ -199,6 +199,7 @@ Options:
   --path-format TEXT     Format expression for output tile files, within
                          output path. Must contain parameters for z, x, y, and
                          ext (extension).  [default: {z}/{x}/{y}.{ext}]
+  -p, --preview          Preview the exported tiles in a simple map.
   -v, --verbose          Verbose output
   --help                 Show this message and exit.
 ```

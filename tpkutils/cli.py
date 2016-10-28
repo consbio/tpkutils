@@ -3,6 +3,8 @@ import os
 import sys
 import time
 import click
+import pkg_resources
+import webbrowser
 
 from tpkutils import TPK
 
@@ -81,9 +83,11 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
          'Must contain parameters for z, x, y, and ext (extension).',
     show_default=True
 )
-
+@click.option('-p', '--preview', is_flag=True, default=False,
+              help='Preview the exported tiles in a simple map.')
 @click.option('-v', '--verbose', count=True, help='Verbose output')
-def disk(tpk_filename, path, zoom, scheme, drop_empty, path_format, verbose):
+def disk(tpk_filename, path, zoom, scheme, drop_empty, path_format,
+         preview, verbose):
     """Export the tile package to disk: z/x/y.<ext> or pattern specified using
     --path-format option.
 
@@ -103,8 +107,33 @@ def disk(tpk_filename, path, zoom, scheme, drop_empty, path_format, verbose):
     if zoom is not None:
         zoom = [int(v) for v in zoom.split(',')]
 
-    tpk = TPK(tpk_filename)
-    tpk.to_disk(path, zoom, scheme, drop_empty, path_format)
-    tpk.close()
+    with TPK(tpk_filename) as tpk:
+        tpk.to_disk(path, zoom, scheme, drop_empty, path_format)
+
+        if preview:
+            template_filename = os.path.join(pkg_resources.resource_filename(__name__, 'preview_template.html'))
+            with open(template_filename) as infile:
+                template = infile.read()
+
+            template = template.replace(
+                '{{BOUNDS}}', '[[{1}, {0}], [{3}, {2}]]'.format(*tpk.bounds)
+            ).replace(
+                '{{MINZOOM}}', str(tpk.zoom_levels[0])
+            ).replace(
+                '{{MAXZOOM}}', str(tpk.zoom_levels[-1])
+            ).replace(
+                '{{URL}}',
+                os.path.join(
+                    os.path.abspath(path),
+                    path_format.replace('{ext}', tpk.format.lower().replace('jpeg', 'jpg')[:3])
+                )
+            )
+
+            outfilename = os.path.join(path, 'preview.html')
+            with open(outfilename, 'w') as outfile:
+                outfile.write(template)
+
+            webbrowser.open(outfilename)
+
 
     print('Exported tiles in {0:2f} seconds'.format(time.time() - start))

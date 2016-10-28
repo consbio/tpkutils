@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.0.1/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.0.1/dist/leaflet.js"></script>
+    <style>
+        html {
+            height: 100%;
+        }
+
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        #Map {
+            width: 100%;
+            height: 100%
+        }
+    </style>
+</head>
+
+<body>
+<div id="Map"></div>
+<script>
+
+    var basemap = L.tileLayer('http://{s}.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+        attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community',
+        subdomains: ['server', 'services']
+    });
+
+
+    var map = L.map('Map', {
+            layers: [basemap],
+            minZoom: {{MINZOOM}},
+            maxZoom: {{MAXZOOM}}
+        })
+        .fitBounds({{BOUNDS}})
+
+    L.tileLayer('{{URL}}').addTo(map);
+
+</script>
+</body>
+</html>
