@@ -36,6 +36,7 @@ EMPTY_TILES = {
     '4ae57bed2b996ae0bd820a1b36561e26ef6d1bc8', # completely white JPG
     'aba7a74e3b932e32bdb21d670a16a08a9460591a',  # blank PNG
     '89eff69bee598f8c3217ca5363c2ef356fd0c394',  # blank PNG
+    '147ca8bf480d89b17921e24e3c09edcf1cb2228b'
  }
 
 
