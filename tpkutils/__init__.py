@@ -9,20 +9,19 @@ conf.xml: basic tileset info
 conf.cdi: tileset bounding box
 """
 
-
-import os
+import json
+import logging
 import math
 import time
 from xml.etree import ElementTree
-from collections import namedtuple
 from zipfile import ZipFile
-from io import BytesIO
-import logging
+
 import hashlib
-import json
+import os
+from collections import namedtuple
+from io import BytesIO
 
 from tpkutils.mbtiles import MBtiles
-
 
 logger = logging.getLogger('tpkutils')
 
@@ -104,10 +103,10 @@ class TPK(object):
         self.legend = []
 
         logger.debug('Reading package metadata')
-        tile_root = 'v101/Layers'  # TODO: automatically determine
 
-        # File format, zoom levels, etc in .../Layers/conf.xml
-        conf_filename = '{0}/{1}'.format(tile_root, 'conf.xml')
+        # File format, zoom levels, etc in .../<root layer name>/conf.xml
+        conf_filename = [f for f in self._fp.namelist() if 'conf.xml' in f][0]
+        self.root_name = os.path.split(os.path.dirname(conf_filename))[1]
         xml = ElementTree.fromstring(self._fp.read(conf_filename))
         self.zoom_levels = [
             int(e.text) for e in
@@ -189,7 +188,7 @@ class TPK(object):
 
         bundles = []
         for name in self._fp.namelist():
-            if 'Layers/_alllayers/L' in name and '.bundle' in name:
+            if '{0}/_alllayers/L'.format(self.root_name) in name and '.bundle' in name:
                 z = int(name.split('/')[-2].lstrip('L'))
                 if zoom is None or z in zoom:
                     bundles.append(name)

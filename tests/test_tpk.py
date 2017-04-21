@@ -150,3 +150,13 @@ def test_export_disk_invalid_scheme(tmpdir):
         tpk.to_disk(path, scheme='bad')
 
     tpk.close()
+
+
+def test_alt_root_name(tmpdir):
+    tpk = TPK('tests/data/alt_root_name.tpk')
+    mbtiles_filename = str(tmpdir.join('test'))
+
+    tpk.to_mbtiles(mbtiles_filename)
+    tpk.close()
+
+    assert os.path.exists('{0}.mbtiles'.format(mbtiles_filename))
