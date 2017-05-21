@@ -20,7 +20,7 @@ setup(
     name='tpkutils',
     version='0.5.0',
     packages=['tpkutils'],
-    url='https://github.com/consbio/tkutils',
+    url='https://github.com/consbio/tpkutils',
     license='ISC',
     author='Brendan Ward',
     author_email='bcward@consbio.org',
