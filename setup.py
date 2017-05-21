@@ -18,7 +18,7 @@ if os.path.exists('README.md'):
 
 setup(
     name='tpkutils',
-    version='0.4.0',
+    version='0.5.0',
     packages=['tpkutils'],
     url='https://github.com/consbio/tkutils',
     license='ISC',
@@ -26,7 +26,7 @@ setup(
     author_email='bcward@consbio.org',
     description='ArcGIS Tile Package Utilities',
     long_description=long_description,
-    install_requires=['click'],
+    install_requires=['click', 'pymbtiles'],
     include_package_data=True,
     extras_require={
         'test': ['pytest', 'pytest-cov'],

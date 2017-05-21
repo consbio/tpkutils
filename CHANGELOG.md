@@ -1,3 +1,7 @@
+## Version 0.5.0 (5/20/2017)
+* moved mbtiles implementation to https://github.com/consbio/pymbtiles
+
+
 ## Version 0.4.0 (10/27/2016)
 * added `--preview` option to `export disk` command, which opens a simple
 preview map of the exported tiles.

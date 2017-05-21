@@ -21,7 +21,7 @@ import os
 from collections import namedtuple
 from io import BytesIO
 
-from tpkutils.mbtiles import MBtiles
+from pymbtiles import MBtiles, Tile
 
 logger = logging.getLogger('tpkutils')
 
@@ -37,9 +37,6 @@ EMPTY_TILES = {
     '89eff69bee598f8c3217ca5363c2ef356fd0c394',  # blank PNG
     '147ca8bf480d89b17921e24e3c09edcf1cb2228b'
  }
-
-
-Tile = namedtuple('Tile', ['z', 'x', 'y', 'data'])
 
 
 def buffer_to_offset(buffer):
@@ -259,7 +256,7 @@ class TPK(object):
             zoom = list(zoom)
             zoom.sort()
 
-            mbtiles.add_tiles(self.read_tiles(zoom, flip_y=True))
+            mbtiles.write_tiles(self.read_tiles(zoom, flip_y=True))
 
             bounds = self.bounds
             center = '{0:4f},{1:4f},{2}'.format(
@@ -268,7 +265,7 @@ class TPK(object):
                 max(zoom[0], int((zoom[-1] - zoom[0]) / 4.0))  # Tune this
             )
 
-            mbtiles.set_metadata({
+            mbtiles.meta.update({
                 'name': self.name,
                 'description': self.summary,  # not description, which is optional
                 'version': self.version,
