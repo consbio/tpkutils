@@ -18,7 +18,7 @@ if os.path.exists('README.md'):
 
 setup(
     name='tpkutils',
-    version='0.5.0',
+    version='0.5.1',
     packages=['tpkutils'],
     url='https://github.com/consbio/tpkutils',
     license='ISC',
