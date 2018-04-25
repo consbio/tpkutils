@@ -3,9 +3,13 @@ import sqlite3
 import pytest
 import hashlib
 
+import sys
+
 
 from tpkutils import TPK
 
+
+IS_PY2 = sys.version_info[0] < 3
 
 
 # First 50 bytes of the tile at z=2,x=0,y=1  (ArcGIS scheme), z=2,x=0,y=2 (xyz scheme)
@@ -39,6 +43,7 @@ def test_read_tile():
         assert tile2 == tile
 
 
+@pytest.mark.xfail(IS_PY2, reason='mbtiles export not supported on Python 2.7')
 def test_export_mbtiles(tmpdir):
     with TPK('tests/data/states_filled.tpk') as tpk:
         mbtiles_filename = str(tmpdir.join('test.mbtiles'))
@@ -73,6 +78,7 @@ def test_export_mbtiles(tmpdir):
         cursor.close()
 
 
+@pytest.mark.xfail(IS_PY2, reason='mbtiles export not supported on Python 2.7')
 def test_export_mbtiles_add_suffix(tmpdir):
     tpk = TPK('tests/data/states_filled.tpk')
     mbtiles_filename = str(tmpdir.join('test'))
@@ -83,6 +89,7 @@ def test_export_mbtiles_add_suffix(tmpdir):
     assert os.path.exists('{0}.mbtiles'.format(mbtiles_filename))
 
 
+@pytest.mark.xfail(IS_PY2, reason='mbtiles export not supported on Python 2.7')
 def test_export_mbtiles_int_zoom(tmpdir):
     tpk = TPK('tests/data/states_filled.tpk')
     mbtiles_filename = str(tmpdir.join('test.mbtiles'))
@@ -152,6 +159,7 @@ def test_export_disk_invalid_scheme(tmpdir):
     tpk.close()
 
 
+@pytest.mark.xfail(IS_PY2, reason='mbtiles export not supported on Python 2.7')
 def test_alt_root_name(tmpdir):
     tpk = TPK('tests/data/alt_root_name.tpk')
     mbtiles_filename = str(tmpdir.join('test'))

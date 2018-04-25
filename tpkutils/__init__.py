@@ -9,7 +9,7 @@ conf.xml: basic tileset info
 conf.cdi: tileset bounding box
 """
 from __future__ import division
-import six
+from six import iterbytes
 
 import json
 import logging
@@ -61,7 +61,7 @@ def buffer_to_offset(buffer):
     int: offset
     """
 
-    return sum(((v & 0xff) * 2 ** (i * 8) for i, v in enumerate(six.iterbytes(buffer))))
+    return sum(((v & 0xff) * 2 ** (i * 8) for i, v in enumerate(iterbytes(buffer))))
 
 
 def read_tile(bundle, offset):
