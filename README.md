@@ -1,12 +1,15 @@
 
 # ArcGIS Tile Package Utilities
 
-A Python 3.5 library for reading tiles and exporting tools from 
+A Python 3 library for reading tiles and exporting tools from 
 [ArcGIS Tile Packages](http://desktop.arcgis.com/en/arcmap/10.3/map/working-with-arcmap/about-tile-packages.htm) 
 which contain tile caches using the 
 [ArcGIS Compact Tile Cache](https://server.arcgis.com/en/server/10.3/publish-services/windows/inside-the-compact-cache-storage-format.htm)
 
 [![Build Status](https://travis-ci.org/consbio/tpkutils.svg?branch=master)](https://travis-ci.org/consbio/tpkutils) [![Coverage Status](https://coveralls.io/repos/github/consbio/tpkutils/badge.svg?branch=master)](https://coveralls.io/github/consbio/tpkutils?branch=master)
+
+Python 2.7 is minimally supported at this time and will be removed when Python 2.7 is no longer officially supported.
+Note: writing to mbtiles is not supported in Python 2.7.
 
 
 ## Goals

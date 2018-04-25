@@ -8,6 +8,8 @@ Tile package files:
 conf.xml: basic tileset info
 conf.cdi: tileset bounding box
 """
+from __future__ import division
+from six import iterbytes
 
 import json
 import logging
@@ -36,7 +38,7 @@ EMPTY_TILES = {
     'aba7a74e3b932e32bdb21d670a16a08a9460591a',  # blank PNG
     '89eff69bee598f8c3217ca5363c2ef356fd0c394',  # blank PNG
     '147ca8bf480d89b17921e24e3c09edcf1cb2228b'
- }
+}
 
 
 def buffer_to_offset(buffer):
@@ -59,7 +61,7 @@ def buffer_to_offset(buffer):
     int: offset
     """
 
-    return sum(((v & 0xff) * 2 ** (i * 8) for i, v in enumerate(buffer)))
+    return sum(((v & 0xff) * 2 ** (i * 8) for i, v in enumerate(iterbytes(buffer))))
 
 
 def read_tile(bundle, offset):
@@ -143,7 +145,7 @@ class TPK(object):
                         'name': layer['layerName'],
                         'elements': [
                             {
-                                #data:image/png;base64,
+                                # data:image/png;base64,
                                 'imageData': 'data:{0};base64,{1}'.format(
                                     l['contentType'], l['imageData']
                                 ),
@@ -214,7 +216,7 @@ class TPK(object):
                     )
                 )
                 if data:
-                    row = math.floor(float(index) / BUNDLE_DIM)
+                    row = int(math.floor(float(index) / BUNDLE_DIM))
                     # Note: x and y seem backwards but were verified through trial and error!
                     x = c_off + row
                     y = r_off + index - (row * BUNDLE_DIM)

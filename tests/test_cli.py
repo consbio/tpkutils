@@ -1,4 +1,5 @@
 import os
+import sys
 import sqlite3
 import pytest
 from click.testing import CliRunner
@@ -6,11 +7,15 @@ from click.testing import CliRunner
 from tpkutils.cli import cli
 
 
+IS_PY2 = sys.version_info[0] < 3
+
+
 @pytest.fixture(scope='function')
 def runner():
     return CliRunner()
 
 
+@pytest.mark.xfail(IS_PY2, reason='mbtiles export not supported on Python 2.7')
 def test_export_mbtiles(runner, tmpdir):
     tpk = 'tests/data/states_filled.tpk'
     mbtiles = str(tmpdir.join('test.mbtiles'))
@@ -30,6 +35,7 @@ def test_export_mbtiles(runner, tmpdir):
         cursor.close()
 
 
+@pytest.mark.xfail(IS_PY2, reason='mbtiles export not supported on Python 2.7')
 def test_export_mbtiles_zoom(runner, tmpdir):
     tpk = 'tests/data/states_filled.tpk'
     mbtiles = str(tmpdir.join('test.mbtiles'))
@@ -51,6 +57,7 @@ def test_export_mbtiles_zoom(runner, tmpdir):
         cursor.close()
 
 
+@pytest.mark.xfail(IS_PY2, reason='mbtiles export not supported on Python 2.7')
 def test_export_mbtiles_existing_output(runner, tmpdir):
     tpk = 'tests/data/states_filled.tpk'
     mbtiles = str(tmpdir.join('test.mbtiles'))
@@ -68,6 +75,7 @@ def test_export_mbtiles_existing_output(runner, tmpdir):
     assert os.path.exists(mbtiles)
 
 
+@pytest.mark.xfail(IS_PY2, reason='mbtiles export not supported on Python 2.7')
 def test_export_mbtiles_verbosity(runner, tmpdir):
     tpk = 'tests/data/states_filled.tpk'
     mbtiles = str(tmpdir.join('test.mbtiles'))
