@@ -8,9 +8,6 @@ which contain tile caches using the
 
 [![Build Status](https://travis-ci.org/consbio/tpkutils.svg?branch=master)](https://travis-ci.org/consbio/tpkutils) [![Coverage Status](https://coveralls.io/repos/github/consbio/tpkutils/badge.svg?branch=master)](https://coveralls.io/github/consbio/tpkutils?branch=master)
 
-Python 2.7 is minimally supported at this time and will be removed when Python 2.7 is no longer officially supported.
-Note: writing to mbtiles is not supported in Python 2.7.
-
 
 ## Goals
 * easy access to tiles in a tile package

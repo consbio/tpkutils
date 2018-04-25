@@ -9,7 +9,7 @@ name = "pypi"
 
 click = "*"
 six = "*"
-pymbtiles = "*"
+pymbtiles = ">=0.2.0"
 
 
 [dev-packages]
