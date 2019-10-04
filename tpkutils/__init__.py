@@ -32,6 +32,9 @@ BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles
 # TODO: bundle size is stored in one of the configuration files
 INDEX_SIZE = 5  # tile index is stored in 5 byte values
 
+WORLD_CIRCUMFERENCE = 40075016.69  # circumference of the earth in metres at the equator
+TILE_PIXEL_SIZE = 256  # in a map service tileset all tiles are 256x256 pixels
+
 # sha1 hashes of empty tiles (completely black or white)
 EMPTY_TILES = {
     '4ae57bed2b996ae0bd820a1b36561e26ef6d1bc8', # completely white JPG
@@ -107,10 +110,27 @@ class TPK(object):
         conf_filename = [f for f in self._fp.namelist() if 'conf.xml' in f][0]
         self.root_name = os.path.split(os.path.dirname(conf_filename))[1]
         xml = ElementTree.fromstring(self._fp.read(conf_filename))
-        self.zoom_levels = [
-            int(e.text) for e in
-            xml.findall('TileCacheInfo/LODInfos/LODInfo/LevelID')
-        ]
+
+        # resolution = Circumference of earth / (2**zoomLevel * 256)
+        # therefore zoomlevel = log2(Circumference of earth/(resolution*256))
+        web_tile_zoom_level_from_resolution =  lambda res: int(round(math.log2(WORLD_CIRCUMFERENCE / (res * TILE_PIXEL_SIZE))))
+
+        self.zoom_levels = []
+
+        # we need to map the "nominal" level id to the actual level id as indicated by the resolution
+        self.web_tile_level_map = {}    # key = nominal zoom level, value = actual tile map service zoom level
+
+        # iteration builds the "nominal zoom levels list" as well as the actual web tile service level map
+        for e in xml.findall('TileCacheInfo/LODInfos/LODInfo'):
+            level = int(e.find('LevelID').text)     # ArcGis always numbers the levels starting at zero
+            resolution = float(e.find('Resolution').text)  # To determine actual web tile zoom level we need the resolution
+            self.zoom_levels.append(level)
+            self.web_tile_level_map[level] = web_tile_zoom_level_from_resolution(resolution)
+
+        for k, v in self.web_tile_level_map.items():
+            logger.info('Nominal level: {0} == tile map zoom level {1}'.format(k,v))
+
+
         self.format = xml.find('TileImageInfo/CacheTileFormat').text
 
         # Descriptive info in esriinfo/iteminfo.xml
@@ -202,6 +222,9 @@ class TPK(object):
             # zoom level is from name of containing folder
             z = int(os.path.split(os.path.dirname(fname))[1].lstrip('L'))
 
+            # get the actual web tile service zoom level
+            z = self.web_tile_level_map.get(z)
+
             # discard 16 byte header
             index_bytes = self._fp.read(fname.replace('.bundle', '.bundlx'))[16:]
 
@@ -216,10 +239,10 @@ class TPK(object):
                     )
                 )
                 if data:
-                    row = int(math.floor(float(index) / BUNDLE_DIM))
-                    # Note: x and y seem backwards but were verified through trial and error!
-                    x = c_off + row
-                    y = r_off + index - (row * BUNDLE_DIM)
+                    # x = column (longitude), y = row (lattitude)
+                    col = int(math.floor(float(index) / BUNDLE_DIM))
+                    x = c_off + col
+                    y = r_off + index - (col * BUNDLE_DIM)
 
                     if flip_y:
                         y = (1 << z) - 1 - y
@@ -255,6 +278,8 @@ class TPK(object):
             elif isinstance(zoom, int):
                 zoom = [zoom]
 
+            zoom_map = self.web_tile_level_map
+
             zoom = list(zoom)
             zoom.sort()
 
@@ -264,7 +289,7 @@ class TPK(object):
             center = '{0:4f},{1:4f},{2}'.format(
                 bounds[0] + (bounds[2] - bounds[0]) / 2.0,
                 bounds[1] + (bounds[3] - bounds[1]) / 2.0,
-                max(zoom[0], int((zoom[-1] - zoom[0]) / 4.0))  # Tune this
+                max(zoom_map.get(zoom[0]), int((zoom_map.get(zoom[0]) + zoom_map.get(zoom[-1])) / 2.0))  # Tune this
             )
 
             mbtiles.meta.update({
@@ -280,8 +305,8 @@ class TPK(object):
                 'format': self.format.lower().replace('jpeg', 'jpg')[:3],
                 'bounds': ','.join('{0:4f}'.format(v) for v in self.bounds),
                 'center': center,
-                'minzoom': str(zoom[0]),
-                'maxzoom': str(zoom[-1]),
+                'minzoom': str(zoom_map.get(zoom[0])),
+                'maxzoom': str(zoom_map.get(zoom[-1])),
 
                 'legend': json.dumps(self.legend) if self.legend else ''
             })
