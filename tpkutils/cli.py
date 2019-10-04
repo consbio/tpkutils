@@ -41,8 +41,12 @@ def export():
     '--overwrite', is_flag=True, default=False,
     help='Overwrite existing mbtiles file', show_default=True)
 
+@click.option(
+    '-cb', '--calc-bounds', is_flag=True, default=False,
+    help='Calulate map extent from tile coverage at highest zoom level exported', show_default=True)
+
 @click.option('-v', '--verbose', count=True, help='Verbose output')
-def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
+def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, calc_bounds, verbose):
     """Export the tile package to mbtiles format"""
 
     configure_logging(verbose)
@@ -58,7 +62,7 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, verbose):
         zoom = [int(v) for v in zoom.split(',')]
 
     tpk = TPK(tpk_filename)
-    tpk.to_mbtiles(mbtiles_filename, zoom)
+    tpk.to_mbtiles(mbtiles_filename, calc_bounds, zoom)
     tpk.close()
 
     print('Exported tiles in {0:2f} seconds'.format(time.time() - start))

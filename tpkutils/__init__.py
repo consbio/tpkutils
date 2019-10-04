@@ -11,6 +11,7 @@ conf.cdi: tileset bounding box
 from __future__ import division
 from six import iterbytes
 
+import sys
 import json
 import logging
 import math
@@ -33,6 +34,7 @@ BUNDLE_DIM = 128 # bundles are 128 rows x 128 columns tiles
 INDEX_SIZE = 5  # tile index is stored in 5 byte values
 
 WORLD_CIRCUMFERENCE = 40075016.69  # circumference of the earth in metres at the equator
+ORIGIN_OFFSET = WORLD_CIRCUMFERENCE / 2.0 # half the circumference
 TILE_PIXEL_SIZE = 256  # in a map service tileset all tiles are 256x256 pixels
 
 # sha1 hashes of empty tiles (completely black or white)
@@ -104,6 +106,13 @@ class TPK(object):
         # Fields that may or may not be populated
         self.legend = []
 
+        # min and max column (longitude) and row (latitude) at the highest exported level
+        # read tiles will maintain these values when called with "highest_zoom" parameter
+        self.minrow = sys.maxsize       # init very large
+        self.maxrow = 0                 # init low
+        self.mincolumn = sys.maxsize    # init very large
+        self.maxcolumn = 0              # init low
+
         logger.debug('Reading package metadata')
 
         # File format, zoom levels, etc in .../<root layer name>/conf.xml
@@ -119,6 +128,7 @@ class TPK(object):
 
         # we need to map the "nominal" level id to the actual level id as indicated by the resolution
         self.web_tile_level_map = {}    # key = nominal zoom level, value = actual tile map service zoom level
+        self.resolution_map = {}    # key = tile map service zoom level, value = resolution
 
         # iteration builds the "nominal zoom levels list" as well as the actual web tile service level map
         for e in xml.findall('TileCacheInfo/LODInfos/LODInfo'):
@@ -126,6 +136,7 @@ class TPK(object):
             resolution = float(e.find('Resolution').text)  # To determine actual web tile zoom level we need the resolution
             self.zoom_levels.append(level)
             self.web_tile_level_map[level] = web_tile_zoom_level_from_resolution(resolution)
+            self.resolution_map[self.web_tile_level_map.get(level)] = resolution
 
         for k, v in self.web_tile_level_map.items():
             logger.info('Nominal level: {0} == tile map zoom level {1}'.format(k,v))
@@ -183,7 +194,7 @@ class TPK(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-    def read_tiles(self, zoom=None, flip_y=False):
+    def read_tiles(self, zoom=None, highest_zoom=None, flip_y=False):
         """
         Read all non-empty tiles from tile package, optionally limited to zoom
         levels provided.
@@ -192,6 +203,7 @@ class TPK(object):
         ----------
         zoom: int or list-like  (default: None)
             zoom level or list-like of zoom levels
+        highest_zoom: int
         flip_y: bool  (default False)
             if True, will return tiles in xyz tile scheme.  Otherwise will use
             ArcGIS scheme.
@@ -202,6 +214,7 @@ class TPK(object):
             Only returns non-empty tiles
         """
 
+        discarded_tiles = 0
         if isinstance(zoom, int):
             zoom = [zoom]
 
@@ -225,6 +238,9 @@ class TPK(object):
             # get the actual web tile service zoom level
             z = self.web_tile_level_map.get(z)
 
+            # max row and column value at this zoom level
+            max_row_col = (1 << z) - 1
+
             # discard 16 byte header
             index_bytes = self._fp.read(fname.replace('.bundle', '.bundlx'))[16:]
 
@@ -242,17 +258,32 @@ class TPK(object):
                     # x = column (longitude), y = row (lattitude)
                     col = int(math.floor(float(index) / BUNDLE_DIM))
                     x = c_off + col
-                    y = r_off + index - (col * BUNDLE_DIM)
+                    y = r_off + (index % BUNDLE_DIM)
 
-                    if flip_y:
-                        y = (1 << z) - 1 - y
+                    # ensure resultant row and column values fall within range!
+                    if (0 <= x <= max_row_col) and (0 <= y <= max_row_col):
+                        if flip_y:
+                            y = max_row_col -  y
 
-                    yield Tile(z, x, y, data)
+                        # track min and max row and column at highest zoom level
+                        # this gives us the option of calculating the map bounds from the tile coverage
+                        if z == highest_zoom:
+                            self.mincolumn = min(self.mincolumn, x)
+                            self.maxcolumn = max(self.maxcolumn, x)
+                            self.minrow = min(self.minrow, y)
+                            self.maxrow = max(self.maxrow, y)
+
+                        yield Tile(z, x, y, data)
+                    else:
+                        logger.debug('Tile out of range, zoom level = {0}, column = {1}, row = {2}'.format(z, x, y))
+                        discarded_tiles += 1
 
                 index += 1
             logger.debug('Time to read bundle: {0:2f}'.format(time.time() - start))
 
-    def to_mbtiles(self, filename, zoom=None):
+        logger.info('Total number of discarded "out of range" tiles = {0}'.format(discarded_tiles))
+
+    def to_mbtiles(self, filename, calc_bounds=False, zoom=None):
         """
         Export tile package to mbtiles v1.1 file, optionally limited to zoom
         levels.  If filename exists, it will be overwritten.  If filename
@@ -283,9 +314,13 @@ class TPK(object):
             zoom = list(zoom)
             zoom.sort()
 
-            mbtiles.write_tiles(self.read_tiles(zoom, flip_y=True))
+            highest_zoom = self.web_tile_level_map.get(zoom[-1])
 
-            bounds = self.bounds
+            mbtiles.write_tiles(self.read_tiles(zoom, highest_zoom, flip_y=True))
+
+            # populate bounds metatdata from JSON data or calculate from map coverage if desired
+            bounds = self.bounds if not calc_bounds else self.calculate_bounds(highest_zoom)
+
             center = '{0:4f},{1:4f},{2}'.format(
                 bounds[0] + (bounds[2] - bounds[0]) / 2.0,
                 bounds[1] + (bounds[3] - bounds[1]) / 2.0,
@@ -303,13 +338,42 @@ class TPK(object):
 
                 'type': 'overlay',
                 'format': self.format.lower().replace('jpeg', 'jpg')[:3],
-                'bounds': ','.join('{0:4f}'.format(v) for v in self.bounds),
+                'bounds': ','.join('{0:4f}'.format(v) for v in bounds),
                 'center': center,
                 'minzoom': str(zoom_map.get(zoom[0])),
                 'maxzoom': str(zoom_map.get(zoom[-1])),
 
                 'legend': json.dumps(self.legend) if self.legend else ''
             })
+
+
+    def calculate_bounds(self, highest_zoom):
+        """
+        :param highest_zoom: highest web map tile zoom level exported
+            (Note: also uses self.mincolumn, self.minrow, self.maxcolumn and self.maxcolumn which
+             are relative to the given highest zoom level)
+
+        :return: tuple(minX, minY, maxX, maxY) in WGS84
+        """
+        # resolution allows us to convert pixels to metres
+        # once we have metres we can convert that to geographical coordinates
+        resolution = self.resolution_map.get(highest_zoom)
+
+        # min and max longitude
+        minX = ((self.mincolumn * TILE_PIXEL_SIZE * resolution - ORIGIN_OFFSET)  / ORIGIN_OFFSET) * 180.0
+        maxX = (((self.maxcolumn+1) * TILE_PIXEL_SIZE * resolution - ORIGIN_OFFSET)  / ORIGIN_OFFSET) * 180.0
+
+        # min latitude
+        lat = ((self.minrow * TILE_PIXEL_SIZE * resolution - ORIGIN_OFFSET)  / ORIGIN_OFFSET) * 180.0
+        minY = 180.0 / math.pi * (2 * math.atan(math.exp(lat * math.pi / 180.0)) - math.pi / 2.0)
+
+        # max latitude
+        lat = (((self.maxrow+1) * TILE_PIXEL_SIZE * resolution - ORIGIN_OFFSET)  / ORIGIN_OFFSET) * 180.0
+        maxY = 180.0 / math.pi * (2 * math.atan(math.exp(lat * math.pi/180)) - math.pi / 2.0)
+
+        logger.info('Bounds calculated from zoom level {0} are {1}, {2}, {3}, {4}'.format(highest_zoom, minX, minY, maxX, maxY))
+
+        return (minX, minY, maxX, maxY)
 
 
     def to_disk(self, path, zoom=None, scheme='arcgis', drop_empty=False,
