@@ -45,8 +45,13 @@ def export():
     '-cb', '--calc-bounds', is_flag=True, default=False,
     help='Calulate map extent from tile coverage at highest zoom level exported', show_default=True)
 
+@click.option(
+    '-dt', '--drop-transparent', type=click.BOOL, is_flag=True, default=False,
+    help='Drop transparent tiles from output mbtiles database'
+)
+
 @click.option('-v', '--verbose', count=True, help='Verbose output')
-def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, calc_bounds, verbose):
+def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, calc_bounds, drop_transparent, verbose):
     """Export the tile package to mbtiles format"""
 
     configure_logging(verbose)
@@ -62,7 +67,7 @@ def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, calc_bounds, verbos
         zoom = [int(v) for v in zoom.split(',')]
 
     tpk = TPK(tpk_filename)
-    tpk.to_mbtiles(mbtiles_filename, calc_bounds, zoom)
+    tpk.to_mbtiles(mbtiles_filename, calc_bounds, drop_transparent, zoom)
     tpk.close()
 
     print('Exported tiles in {0:2f} seconds'.format(time.time() - start))

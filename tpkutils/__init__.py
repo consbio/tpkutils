@@ -45,6 +45,8 @@ EMPTY_TILES = {
     '147ca8bf480d89b17921e24e3c09edcf1cb2228b'
 }
 
+# sha1 hash of fully transparent tile
+TRANSPARENT_TILES = ('147ca8bf480d89b17921e24e3c09edcf1cb2228b')    # png
 
 def buffer_to_offset(buffer):
     """
@@ -203,7 +205,10 @@ class TPK(object):
         ----------
         zoom: int or list-like  (default: None)
             zoom level or list-like of zoom levels
-        highest_zoom: int
+        highest_zoom: int (default: None)
+            when processing tiles from the designated highest zoom level record min/max row and column
+            this gives us the option of calculating the map bounds from the actual tile coverage
+            NOTE: this value has already been "translated" from LevelID to actual WTMS zoom level!
         flip_y: bool  (default False)
             if True, will return tiles in xyz tile scheme.  Otherwise will use
             ArcGIS scheme.
@@ -238,7 +243,7 @@ class TPK(object):
             # get the actual web tile service zoom level
             z = self.web_tile_level_map.get(z)
 
-            # max row and column value at this zoom level
+            # max row and column value allowed at this WTMS zoom level:  (2**zoom_level) - 1
             max_row_col = (1 << z) - 1
 
             # discard 16 byte header
@@ -283,7 +288,7 @@ class TPK(object):
 
         logger.info('Total number of discarded "out of range" tiles = {0}'.format(discarded_tiles))
 
-    def to_mbtiles(self, filename, calc_bounds=False, zoom=None):
+    def to_mbtiles(self, filename, calc_bounds=False, drop_transparent=False, zoom=None):
         """
         Export tile package to mbtiles v1.1 file, optionally limited to zoom
         levels.  If filename exists, it will be overwritten.  If filename
@@ -293,6 +298,10 @@ class TPK(object):
         ----------
         filename: string
             name of mbtiles file
+        calc_bounds: boolean
+            when true calculate the map bounds from the actual tile coverage at the highest exported zoom level
+        drop_transparent: boolean
+            when true filter out purely transparent tiles, dropping them from the resultant MBTiles db
         zoom: int or list-like of ints, default: None (all tiles exported)
             zoom levels to export to mbtiles
         """
@@ -316,7 +325,11 @@ class TPK(object):
 
             highest_zoom = self.web_tile_level_map.get(zoom[-1])
 
-            mbtiles.write_tiles(self.read_tiles(zoom, highest_zoom, flip_y=True))
+            # if drop_transparent flag is true and the tile is completely transparent we DO NOT want to keep it,
+            # othwerwise we DO want to keep it
+            keep_tile = lambda tile: not (drop_transparent and hashlib.sha1(tile.data).hexdigest() in TRANSPARENT_TILES)
+
+            mbtiles.write_tiles(filter(keep_tile, self.read_tiles(zoom, highest_zoom, flip_y=True)))
 
             # populate bounds metatdata from JSON data or calculate from map coverage if desired
             bounds = self.bounds if not calc_bounds else self.calculate_bounds(highest_zoom)
