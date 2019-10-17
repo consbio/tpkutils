@@ -8,7 +8,7 @@ import webbrowser
 
 from tpkutils import TPK
 
-logger = logging.getLogger('tpkutils')
+logger = logging.getLogger("tpkutils")
 
 
 def configure_logging(verbose):
@@ -21,82 +21,117 @@ def configure_logging(verbose):
     logging.basicConfig(stream=sys.stderr, level=level)
 
 
-
 @click.group()
 def cli():
     pass
+
 
 @cli.group()
 def export():
     pass
 
 
-@export.command(short_help='Export the tile package to mbtiles')
-@click.argument('tpk_filename', type=click.Path(exists=True))
-@click.argument('mbtiles_filename', type=click.Path())
+@export.command(short_help="Export the tile package to mbtiles")
+@click.argument("tpk_filename", type=click.Path(exists=True))
+@click.argument("mbtiles_filename", type=click.Path())
 @click.option(
-    '-z', '--zoom', type=click.STRING, default=None,
-    help='Limit zoom levels to export: "0,1,2"')
-@click.option(
-    '--overwrite', is_flag=True, default=False,
-    help='Overwrite existing mbtiles file', show_default=True)
-
-@click.option(
-    '-cb', '--calc-bounds', is_flag=True, default=False,
-    help='Calulate map extent from tile coverage at highest zoom level exported', show_default=True)
-
-@click.option(
-    '-dt', '--drop-transparent', type=click.BOOL, is_flag=True, default=False,
-    help='Drop transparent tiles from output mbtiles database'
+    "-z",
+    "--zoom",
+    type=click.STRING,
+    default=None,
+    help='Limit zoom levels to export: "0,1,2"',
 )
-
-@click.option('-v', '--verbose', count=True, help='Verbose output')
-def mbtiles(tpk_filename, mbtiles_filename, zoom, overwrite, calc_bounds, drop_transparent, verbose):
+@click.option(
+    "--overwrite",
+    is_flag=True,
+    default=False,
+    help="Overwrite existing mbtiles file",
+    show_default=True,
+)
+@click.option(
+    "--drop-empty",
+    type=click.BOOL,
+    is_flag=True,
+    default=False,
+    help="Drop empty tiles from output (pure white, black, transparent, or otherwise)",
+)
+@click.option(
+    "-tb",
+    "--tile-bounds",
+    is_flag=True,
+    default=False,
+    help="Calculate tileset bounds from tile coverage at highest zoom level exported",
+    show_default=True,
+)
+@click.option("-v", "--verbose", count=True, help="Verbose output")
+def mbtiles(
+    tpk_filename, mbtiles_filename, zoom, overwrite, drop_empty, tile_bounds, verbose
+):
     """Export the tile package to mbtiles format"""
 
     configure_logging(verbose)
 
     if os.path.exists(mbtiles_filename) and not overwrite:
         raise click.ClickException(
-            'Output exists and overwrite is false. '
-            'Use --overwrite option to overwrite')
+            "Output exists and overwrite is false. "
+            "Use --overwrite option to overwrite"
+        )
 
     start = time.time()
 
     if zoom is not None:
-        zoom = [int(v) for v in zoom.split(',')]
+        zoom = [int(v) for v in zoom.split(",")]
 
     tpk = TPK(tpk_filename)
-    tpk.to_mbtiles(mbtiles_filename, calc_bounds, drop_transparent, zoom)
+    tpk.to_mbtiles(
+        mbtiles_filename, zoom=zoom, tile_bounds=tile_bounds, drop_empty=drop_empty
+    )
     tpk.close()
 
-    print('Exported tiles in {0:2f} seconds'.format(time.time() - start))
+    print("Exported tiles in {0:2f} seconds".format(time.time() - start))
 
 
-@export.command(short_help='Export the tile package to disk')
-@click.argument('tpk_filename', type=click.Path(exists=True))
-@click.argument('path', type=click.Path())
+@export.command(short_help="Export the tile package to disk")
+@click.argument("tpk_filename", type=click.Path(exists=True))
+@click.argument("path", type=click.Path())
 @click.option(
-    '-z', '--zoom', type=click.STRING, default=None,
-    help='Limit zoom levels to export: "0,1,2"')
-@click.option(
-    '--scheme', type=click.Choice(('xyz', 'arcgis')), default='arcgis',
-    help='Tile numbering scheme: xyz or arcgis', show_default=True)
-@click.option(
-    '--drop-empty', type=click.BOOL, is_flag=True, default=False,
-    help='Drop empty tiles from output'
+    "-z",
+    "--zoom",
+    type=click.STRING,
+    default=None,
+    help='Limit zoom levels to export: "0,1,2"',
 )
 @click.option(
-    '--path-format', type=click.STRING, default='{z}/{x}/{y}.{ext}',
-    help='Format expression for output tile files, within output path. '
-         'Must contain parameters for z, x, y, and ext (extension).',
-    show_default=True
+    "--scheme",
+    type=click.Choice(("xyz", "arcgis")),
+    default="arcgis",
+    help="Tile numbering scheme: xyz or arcgis",
+    show_default=True,
 )
-@click.option('-p', '--preview', is_flag=True, default=False,
-              help='Preview the exported tiles in a simple map.')
-@click.option('-v', '--verbose', count=True, help='Verbose output')
-def disk(tpk_filename, path, zoom, scheme, drop_empty, path_format,
-         preview, verbose):
+@click.option(
+    "--drop-empty",
+    type=click.BOOL,
+    is_flag=True,
+    default=False,
+    help="Drop empty tiles from output (pure white, black, transparent, or otherwise)",
+)
+@click.option(
+    "--path-format",
+    type=click.STRING,
+    default="{z}/{x}/{y}.{ext}",
+    help="Format expression for output tile files, within output path. "
+    "Must contain parameters for z, x, y, and ext (extension).",
+    show_default=True,
+)
+@click.option(
+    "-p",
+    "--preview",
+    is_flag=True,
+    default=False,
+    help="Preview the exported tiles in a simple map.",
+)
+@click.option("-v", "--verbose", count=True, help="Verbose output")
+def disk(tpk_filename, path, zoom, scheme, drop_empty, path_format, preview, verbose):
     """Export the tile package to disk: z/x/y.<ext> or pattern specified using
     --path-format option.
 
@@ -109,40 +144,45 @@ def disk(tpk_filename, path, zoom, scheme, drop_empty, path_format,
     configure_logging(verbose)
 
     if os.path.exists(path) and len(os.listdir(path)) > 0:
-        raise click.ClickException('Output directory must be empty.')
+        raise click.ClickException("Output directory must be empty.")
 
     start = time.time()
 
     if zoom is not None:
-        zoom = [int(v) for v in zoom.split(',')]
+        zoom = [int(v) for v in zoom.split(",")]
 
     with TPK(tpk_filename) as tpk:
         tpk.to_disk(path, zoom, scheme, drop_empty, path_format)
 
         if preview:
-            template_filename = os.path.join(pkg_resources.resource_filename(__name__, 'preview_template.html'))
+            template_filename = os.path.join(
+                pkg_resources.resource_filename(__name__, "preview_template.html")
+            )
             with open(template_filename) as infile:
                 template = infile.read()
 
-            template = template.replace(
-                '{{BOUNDS}}', '[[{1}, {0}], [{3}, {2}]]'.format(*tpk.bounds)
-            ).replace(
-                '{{MINZOOM}}', str(tpk.zoom_levels[0])
-            ).replace(
-                '{{MAXZOOM}}', str(tpk.zoom_levels[-1])
-            ).replace(
-                '{{URL}}',
-                os.path.join(
-                    os.path.abspath(path),
-                    path_format.replace('{ext}', tpk.format.lower().replace('jpeg', 'jpg')[:3])
+            template = (
+                template.replace(
+                    "{{BOUNDS}}", "[[{1}, {0}], [{3}, {2}]]".format(*tpk.bounds)
+                )
+                .replace("{{MINZOOM}}", str(tpk.zoom_levels[0]))
+                .replace("{{MAXZOOM}}", str(tpk.zoom_levels[-1]))
+                .replace(
+                    "{{URL}}",
+                    os.path.join(
+                        os.path.abspath(path),
+                        path_format.replace(
+                            "{ext}", tpk.format.lower().replace("jpeg", "jpg")[:3]
+                        ),
+                    ),
                 )
             )
 
-            outfilename = os.path.join(path, 'preview.html')
-            with open(outfilename, 'w') as outfile:
+            outfilename = os.path.join(path, "preview.html")
+            with open(outfilename, "w") as outfile:
                 outfile.write(template)
 
             webbrowser.open(outfilename)
 
+    print("Exported tiles in {0:2f} seconds".format(time.time() - start))
 
-    print('Exported tiles in {0:2f} seconds'.format(time.time() - start))
