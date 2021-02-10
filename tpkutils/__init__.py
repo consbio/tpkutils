@@ -8,10 +8,8 @@ Tile package files:
 conf.xml: basic tileset info
 conf.cdi: tileset bounding box
 """
-from __future__ import division
-from six import iterbytes
+from math import log2
 
-import sys
 import json
 import logging
 import math
@@ -21,20 +19,10 @@ from zipfile import ZipFile
 
 import hashlib
 import os
-from collections import namedtuple
 from io import BytesIO
 
 from pymbtiles import MBtiles, Tile
 import mercantile
-
-# Python 2 shim for math.log2
-# TODO: remove when support for Python 2 is completely dropped
-try:
-    from math import log2
-except ImportError:
-
-    def log2(value):
-        return math.log(value, 2)
 
 
 logger = logging.getLogger("tpkutils")
@@ -78,7 +66,7 @@ def buffer_to_offset(buffer):
     int: offset
     """
 
-    return sum(((v & 0xFF) * 2 ** (i * 8) for i, v in enumerate(iterbytes(buffer))))
+    return sum(((v & 0xFF) * 2 ** (i * 8) for i, v in enumerate(buffer)))
 
 
 def calculate_zoom_from_resolution(resolution, tile_size=TILE_PIXEL_SIZE):
@@ -89,16 +77,16 @@ def calculate_zoom_from_resolution(resolution, tile_size=TILE_PIXEL_SIZE):
 
     Zoom level is calculated by
     `zoomlevel = log2(Circumference of earth/(resolution * tile_size))`
-    
+
     Parameters
     ----------
     resolution : float
     tile_size : int
         size of tile in pixels along one edge (default: 256)
-    
+
     Returns
     -------
-    int : Zoom level 
+    int : Zoom level
     """
 
     return int(round(log2(WORLD_CIRCUMFERENCE / (resolution * tile_size))))

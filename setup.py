@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="tpkutils",
-    version="0.7.0",
+    version="0.8.0",
     packages=["tpkutils"],
     url="https://github.com/consbio/tpkutils",
     license="ISC",
@@ -16,4 +16,5 @@ setup(
     include_package_data=True,
     extras_require={"test": ["pytest", "pytest-cov"]},
     entry_points={"console_scripts": "tpk=tpkutils.cli:cli"},
+    python_requires='>=3',
 )

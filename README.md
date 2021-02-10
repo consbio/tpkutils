@@ -230,9 +230,12 @@ Tile packages created using other versions may not work correctly
 
 Versions from ArcGIS older than 10.1 are unlikely to be supported.
 
-Minimal support exists for Python 2.7. This will removed once Python 2.7 reaches end of life.
 
 ## Changes:
+
+### 0.8.0 (unreleased)
+- removed Python 2 support
+
 
 ### 0.7.0
 
