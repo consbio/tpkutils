@@ -337,13 +337,10 @@ class TPK(object):
                 zoom = self.zoom_levels
             elif isinstance(zoom, int):
                 zoom = [zoom]
+            zoom = sorted(zoom)
 
-            zoom = list(zoom)
-            zoom.sort()
-
-            real_zooms = (
-                set()
-            )  # Zooms for which at least some tiles have not been dropped
+            # Zooms for which at least some tiles have not been dropped
+            real_zooms = set()
 
             def tile_generator():
                 for tile in self.read_tiles(zoom, flip_y=True):
@@ -357,8 +354,7 @@ class TPK(object):
 
             mbtiles.write_tiles(tile_generator())
 
-            zoom = list(real_zooms)
-            zoom.sort()
+            zoom = sorted(real_zooms)
 
             if tile_bounds:
                 # Calculate bounds based on maximum zoom to be exported
