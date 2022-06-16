@@ -341,10 +341,16 @@ class TPK(object):
             zoom = list(zoom)
             zoom.sort()
 
-            real_zooms = set()  # Zooms for which at least some tiles have not been dropped
+            real_zooms = (
+                set()
+            )  # Zooms for which at least some tiles have not been dropped
+
             def tile_generator():
                 for tile in self.read_tiles(zoom, flip_y=True):
-                    if drop_empty and hashlib.sha1(tile.data).hexdigest() in EMPTY_TILES:
+                    if (
+                        drop_empty
+                        and hashlib.sha1(tile.data).hexdigest() in EMPTY_TILES
+                    ):
                         continue
                     real_zooms.add(tile.z)
                     yield tile
