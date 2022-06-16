@@ -341,15 +341,18 @@ class TPK(object):
             zoom = list(zoom)
             zoom.sort()
 
-            tiles = (
-                tile
-                for tile in self.read_tiles(zoom, flip_y=True)
-                if not (
-                    drop_empty and hashlib.sha1(tile.data).hexdigest() in EMPTY_TILES
-                )
-            )
+            real_zooms = set()  # Zooms for which at least some tiles have not been dropped
+            def tile_generator():
+                for tile in self.read_tiles(zoom, flip_y=True):
+                    if drop_empty and hashlib.sha1(tile.data).hexdigest() in EMPTY_TILES:
+                        continue
+                    real_zooms.add(tile.z)
+                    yield tile
 
-            mbtiles.write_tiles(tiles)
+            mbtiles.write_tiles(tile_generator())
+
+            zoom = list(real_zooms)
+            zoom.sort()
 
             if tile_bounds:
                 # Calculate bounds based on maximum zoom to be exported
