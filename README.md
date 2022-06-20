@@ -5,7 +5,7 @@ A Python 3 library for reading tiles and exporting tools from
 which contain tile caches using the
 [ArcGIS Compact Tile Cache](https://server.arcgis.com/en/server/10.3/publish-services/windows/inside-the-compact-cache-storage-format.htm)
 
-[![Build Status](https://travis-ci.org/consbio/tpkutils.svg?branch=master)](https://travis-ci.org/consbio/tpkutils) [![Coverage Status](https://coveralls.io/repos/github/consbio/tpkutils/badge.svg?branch=master)](https://coveralls.io/github/consbio/tpkutils?branch=master)
+![Python Tests](https://github.com/consbio/tpkutils/actions/workflows/python-tests.yml/badge.svg)
 
 ## Goals
 
