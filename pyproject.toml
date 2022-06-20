@@ -4,6 +4,7 @@ version = "0.8.0"
 description = "ArcGIS Tile Package Utilities"
 authors = ["Brendan Ward <bcward@astutespruce.com>"]
 license = "ISC"
+readme = "README.md"
 classifiers = [
     "License :: OSI Approved :: ISC License (ISCL)",
     "Programming Language :: Python :: 3"

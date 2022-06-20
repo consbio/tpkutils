@@ -22,15 +22,9 @@ which contain tile caches using the
 
 ## Installation
 
-For now, while this is under active development, install from master
-branch on GitHub using pip:
-
 ```
-pip install git+https://github.com/consbio/tpkutils.git --upgrade
+pip install tpkutils --upgrade
 ```
-
-Once functionality stabilizes, it will be added to
-[PyPi](https://pypi.python.org/pypi)
 
 ## Usage
 
